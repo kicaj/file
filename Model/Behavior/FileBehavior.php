@@ -4,13 +4,13 @@
  *
  * Tested on CakePHP 2.3.9/PHP 5.4.0
  *
- * @todo		Rewrite for use built-in validation (e.g. Validation::extension(); and Validation::mimeType();) and other addition (e.g. CakeNumber::fromReadableSize();) - Q4 2013
- * @todo		Rewrite to PHP 5.5 for new function from GD2 library (e.g. imagescale(); or imagecrop();) - Q1 2014
- * @copyright	Radosław Zając, kicaj (kicaj@kdev.pl)
- * @link		http://repo.kdev.pl/filebehavior
- * @package		Cake.Model.Behavior
- * @version		1.0.20130828
- * @license		http://www.opensource.org/licenses/mit-license.php MIT License
+ * @todo Rewrite for use built-in validation (e.g. Validation::extension(); and Validation::mimeType();) and other addition (e.g. CakeNumber::fromReadableSize();) - Q4 2013
+ * @todo Rewrite to PHP 5.5 for new function from GD2 library (e.g. imagescale(); or imagecrop();) - Q1 2014
+ * @copyright Radosław Zając, kicaj (kicaj@kdev.pl)
+ * @link http://repo.kdev.pl/filebehavior
+ * @package	Cake.Model.Behavior
+ * @version	1.0.20130828
+ * @license http://www.opensource.org/licenses/mit-license.php MIT License
  */
 class FileBehavior extends ModelBehavior {
 
@@ -202,7 +202,7 @@ class FileBehavior extends ModelBehavior {
 	 * Delete file with created thumbs
 	 * 
 	 * @param Model $model Reference to model
-	 * @return boolean True it is success
+	 * @return boolean True if is success
 	 */
 	public function deleteFile(Model $model) {
 		// Get field list of model schema
