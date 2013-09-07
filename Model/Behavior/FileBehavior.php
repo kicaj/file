@@ -9,7 +9,7 @@
  * @copyright     Radosław Zając, kicaj (kicaj@kdev.pl)
  * @link          http://repo.kdev.pl/filebehavior
  * @package       Cake.Model.Behavior
- * @version       1.0.20130828
+ * @version       1.1.20130907
  * @license       http://www.opensource.org/licenses/mit-license.php MIT License
  */
 class FileBehavior extends ModelBehavior {
@@ -545,9 +545,9 @@ class FileBehavior extends ModelBehavior {
 			return true;
 		}
 		
-		//if(in_array($type, $this->settings[$model->name][$validateKeys[0]]['types'])) {// && $validateVariable['type'] === mime_content_type($validateVariable['tmp_name'])) {
-			//return true;
-		//}		
+		if(in_array($validateVariable['type'], $this->settings[$model->name][$validateKeys[0]]['types'])) {
+			return true;
+		}
 		
 		return false;
 	}
