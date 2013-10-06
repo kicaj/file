@@ -243,6 +243,8 @@ class FileBehavior extends ModelBehavior {
 			// Get image resource
 			switch($fileExtension) {
 				case 'jpg':
+					ini_set('gd.jpeg_ignore_warning', 1);
+					
 					$sourceImage = imagecreatefromjpeg($originalFile);
 					break;
 				case 'gif':
