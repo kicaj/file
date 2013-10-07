@@ -9,7 +9,7 @@
  * @copyright     Radosław Zając, kicaj (kicaj@kdev.pl)
  * @link          http://repo.kdev.pl/filebehavior
  * @package       Cake.Model.Behavior
- * @version       1.1.20130907
+ * @version       1.2.20131007
  * @license       http://www.opensource.org/licenses/mit-license.php MIT License
  */
 class FileBehavior extends ModelBehavior {
@@ -97,7 +97,7 @@ class FileBehavior extends ModelBehavior {
 				$model->data[$model->name][$fieldName] = $this->files[$fieldName]['name'];
 			} else {
 				// Delete file array from data when is not attached
-				//unset($model->data[$model->alias][$fieldName]);
+				unset($model->data[$model->alias][$fieldName]);
 			}
 		}
 		
