@@ -9,7 +9,7 @@
  * @copyright     Radosław Zając, kicaj (kicaj@kdev.pl)
  * @link          http://repo.kdev.pl/filebehavior
  * @package       Cake.Model.Behavior
- * @version       1.2.20131007
+ * @version       1.3.20131013
  * @license       http://www.opensource.org/licenses/mit-license.php MIT License
  */
 class FileBehavior extends ModelBehavior {
@@ -84,8 +84,10 @@ class FileBehavior extends ModelBehavior {
 	 * Callback beforeSave
 	 * 
 	 * @param Model $model Reference to model
+	 * @param array $options Options passed from model
+	 * @return boolean True if is success
 	 */
-	public function beforeSave(Model $model) {
+	public function beforeSave(Model $model, $options = array()) {
 		foreach($this->settings[$model->name] as $fieldName => $fieldOptions) {
 			// Check for temporary file
 			if(isset($model->data[$model->name][$fieldName]) && !empty($model->data[$model->name][$fieldName]['name']) && file_exists($model->data[$model->name][$fieldName]['tmp_name'])) {
@@ -108,10 +110,12 @@ class FileBehavior extends ModelBehavior {
 	 * Callback afterSave
 	 * 
 	 * @param Model $model Reference to model
-	 * @param boolean $isCreated True if this save created a new record
+	 * @param boolean $created True if this save created a new record
+	 * @param array $options Options passed from Model::save()
+	 * @return boolean
 	 */
-	public function afterSave(Model $model, $isCreated) {
-		if($isCreated !== true && empty($this->files)) {
+	public function afterSave(Model $model, $created, $options = array()) {
+		if($created !== true && empty($this->files)) {
 		
 		} else {
 			$this->prepareFile($model);
