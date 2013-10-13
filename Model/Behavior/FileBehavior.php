@@ -118,7 +118,6 @@ class FileBehavior extends ModelBehavior {
 		}
 	}
 	
-	// Callback before delete
 	/**
 	 * Callback beforeDelete
 	 * 
