@@ -2,7 +2,7 @@
 /**
  * File Behavior for upload files and processing images.
  *
- * Tested on CakePHP 2.3.9/PHP 5.4.0
+ * Tested on CakePHP 2.4.1/PHP 5.4.0
  *
  * @todo          Rewrite for use built-in validation (e.g. Validation::extension(); and Validation::mimeType();) and other addition (e.g. CakeNumber::fromReadableSize();) - Q4 2013
  * @todo          Rewrite to PHP 5.5 for new function from GD2 library (e.g. imagescale(); or imagecrop();) - Q1 2014
