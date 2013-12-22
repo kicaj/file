@@ -2,22 +2,22 @@
 /**
  * File Behavior for upload files and processing images.
  *
- * Tested on CakePHP 2.4.1/PHP 5.4.0
+ * Tested on CakePHP 2.4.3/PHP 5.4.0
  *
- * @todo          Rewrite for use built-in validation (e.g. Validation::extension(); and Validation::mimeType();) and other addition (e.g. CakeNumber::fromReadableSize();) - Q4 2013
+ * @todo          Rewrite for use built-in validation (e.g. Validation::extension(); and Validation::mimeType();) and other addition (e.g. CakeNumber::fromReadableSize();) - Q1 2014
  * @todo          Rewrite to PHP 5.5 for new function from GD2 library (e.g. imagescale(); or imagecrop();) - Q1 2014
  * @copyright     Radosław Zając, kicaj (kicaj@kdev.pl)
  * @link          http://repo.kdev.pl/filebehavior
  * @package       Cake.Model.Behavior
- * @version       1.4.20131027
+ * @version       1.4.20131222
  * @license       http://www.opensource.org/licenses/mit-license.php MIT License
  */
 class FileBehavior extends ModelBehavior {
 
 	/**
-	 * Default settings for uploaded files
+	 * Default settings
 	 *
-	 * @var Default settings
+	 * @var array
 	 */
 	public $default = array(
 		'types' => array( // default allowed types
@@ -27,36 +27,45 @@ class FileBehavior extends ModelBehavior {
 			'image/pjpg',
 			'image/png',
 			'image/x-png',
-			'image/gif'),
+			'image/gif'
+		),
 		'extensions' => array( // default allowed extensions
 			'jpeg',
 			'jpg',
 			'pjpg',
 			'pjpeg',
 			'png',
-			'gif'),
+			'gif'
+		),
 		'thumbs' => array(),
 		'path' => 'files',
-		'watermark' => '');
+		'watermark' => ''
+	);
+
 	/**
-	 * Default validations for uploaded files
+	 * Default validations rules
 	 *
-	 * @var array Default validations
+	 * @var array
 	 */
 	public $validate = array(
 		'max' => array(
 			'rule' => array('fileSize', '<=', '10M'),
-			'message' => 'Niestety, ale maksymalny rozmiar pliku został przekroczony!'),
+			'message' => 'Niestety, ale maksymalny rozmiar pliku został przekroczony!'
+		),
 		'type' => array(
 			'rule' => 'fileType',
-			'message' => 'Niestety, ale niedozwolony typ pliku!'),
+			'message' => 'Niestety, ale niedozwolony typ pliku!'
+		),
 		'ext' => array(
 			'rule' => 'fileExtension',
-			'message' => 'Niestety, ale niedozwolony typ rozszerzenia pliku!'));
+			'message' => 'Niestety, ale niedozwolony typ rozszerzenia pliku!'
+		)
+	);
+
 	/**
 	 * Array of files to upload.
 	 *
-	 * @var array Files to upload
+	 * @var array
 	 */
 	public $files = array();
 
@@ -67,11 +76,11 @@ class FileBehavior extends ModelBehavior {
 	 * @param array $settings Array of settings
 	 */
 	public function setup(Model $model, $settings = array()) {
-		foreach($settings as $field => $array) {
+		foreach ($settings as $field => $array) {
 			// Set validations rules
 			$validation = array();
 
-			if(isset($model->validate[$field])) {
+			if (isset($model->validate[$field])) {
 				$validation = $model->validate[$field];
 			}
 
@@ -89,9 +98,9 @@ class FileBehavior extends ModelBehavior {
 	 * @return boolean True if is success
 	 */
 	public function beforeSave(Model $model, $options = array()) {
-		foreach($this->settings[$model->name] as $fieldName => $fieldOptions) {
+		foreach ($this->settings[$model->name] as $fieldName => $fieldOptions) {
 			// Check for temporary file
-			if(isset($model->data[$model->name][$fieldName]) && !empty($model->data[$model->name][$fieldName]['name']) && file_exists($model->data[$model->name][$fieldName]['tmp_name'])) {
+			if (isset($model->data[$model->name][$fieldName]) && !empty($model->data[$model->name][$fieldName]['name']) && file_exists($model->data[$model->name][$fieldName]['tmp_name'])) {
 				// Settings for files
 				$this->files[$fieldName] = $model->data[$model->name][$fieldName];
 				$this->files[$fieldName]['path'] = $this->prepareDir($fieldOptions['path']);
@@ -116,7 +125,7 @@ class FileBehavior extends ModelBehavior {
 	 * @return boolean
 	 */
 	public function afterSave(Model $model, $created, $options = array()) {
-		if($created !== true && empty($this->files)) {
+		if ($created !== true && empty($this->files)) {
 
 		} else {
 			$this->prepareFile($model);
@@ -146,20 +155,20 @@ class FileBehavior extends ModelBehavior {
 	 * @return string New name of file
 	 */
 	public function prepareName(Model $model, $fieldName) {
-		if(isset($model->id)) {
+		if (isset($model->id)) {
 			$dataField = $model->findById($model->id);
 
-			if(is_array($dataField) && !empty($dataField) && is_file($this->files[$fieldName]['path'] . DS . $dataField[$model->name][$fieldName])) {
+			if (is_array($dataField) && !empty($dataField) && is_file($this->files[$fieldName]['path'] . DS . $dataField[$model->name][$fieldName])) {
 				$filePattern = $this->settings[$model->name][$fieldName]['path'] . DS . substr($dataField[$model->name][$fieldName], 0, 14);
 
-				foreach(glob($filePattern .'*') as $fileName) {
+				foreach (glob($filePattern . '*') as $fileName) {
 					// Remove file
 					@unlink($fileName);
 				}
 			}
 		}
 
-		$nameFile = substr(String::uuid(), -27, 14) .'_original.'. $this->getExtension($this->files[$fieldName]['name']);
+		$nameFile = substr(String::uuid(), -27, 14) . '_original.' . $this->getExtension($this->files[$fieldName]['name']);
 
 		return $nameFile;
 	}
@@ -174,7 +183,7 @@ class FileBehavior extends ModelBehavior {
 	public function prepareDir($dirPath) {
 		$dirPath = str_replace('/', DS, $dirPath);
 
-		if(!is_dir($dirPath) && strlen($dirPath) > 0) {
+		if (!is_dir($dirPath) && strlen($dirPath) > 0) {
 			mkdir($dirPath, 0777, true);
 		}
 
@@ -190,12 +199,12 @@ class FileBehavior extends ModelBehavior {
 	 * @param Model $model Reference to model
 	 */
 	public function prepareFile(Model $model) {
-		foreach($this->files as $fieldName => $fieldOptions) {
+		foreach ($this->files as $fieldName => $fieldOptions) {
 			// Name of original file
 			$fileName = $fieldOptions['path'] . DS . $this->files[$fieldName]['name'];
 
-			if(move_uploaded_file($this->files[$fieldName]['tmp_name'], $fileName)) {
-				if(isset($this->settings[$model->name][$fieldName]['thumbs'])) {
+			if (move_uploaded_file($this->files[$fieldName]['tmp_name'], $fileName)) {
+				if (isset($this->settings[$model->name][$fieldName]['thumbs'])) {
 					$this->prepareThumbs($fileName, $this->settings[$model->name][$fieldName]);
 				}
 			}
@@ -212,16 +221,16 @@ class FileBehavior extends ModelBehavior {
 		// Get field list of model schema
 		$modelSchema = $model->schema();
 
-		foreach($this->settings[$model->name] as $fieldName => $fieldOptions) {
+		foreach ($this->settings[$model->name] as $fieldName => $fieldOptions) {
 			// Check is field in model schema
-			if(isset($modelSchema[$fieldName])) {
+			if (isset($modelSchema[$fieldName])) {
 				$dataField = $model->findById($model->id);
 
-				if(is_array($dataField) && !empty($dataField[$model->name][$fieldName])) {
+				if (is_array($dataField) && !empty($dataField[$model->name][$fieldName])) {
 					// Pattern for original file with thumbs
 					$filePattern = $this->settings[$model->name][$fieldName]['path'] . DS . substr($dataField[$model->name][$fieldName], 0, 14);
 
-					foreach(glob($filePattern .'*') as $fileName) {
+					foreach (glob($filePattern . '*') as $fileName) {
 						// Remove file
 						@unlink($fileName);
 					}
@@ -240,30 +249,34 @@ class FileBehavior extends ModelBehavior {
 	 * @return boolean Output image to save file
 	 */
 	public function prepareThumbs($originalFile, $settingsParams) {
-		if(is_file($originalFile) && is_array($settingsParams)) {
+		if (is_file($originalFile) && is_array($settingsParams)) {
 			// Get extension from original file
 			$fileExtension = $this->getExtension($originalFile);
 
 			// Get image resource
-			switch($fileExtension) {
+			switch ($fileExtension) {
 				case 'jpg':
 					ini_set('gd.jpeg_ignore_warning', 1);
 
 					$sourceImage = imagecreatefromjpeg($originalFile);
+
 					break;
 				case 'gif':
 					$sourceImage = imagecreatefromgif($originalFile);
+
 					break;
 				case 'png':
 					$sourceImage = imagecreatefrompng($originalFile);
+
 					break;
 				default:
 					$sourceImage = null;
+
 					break;
 			}
 
 			// Check for image resource type
-			if(is_resource($sourceImage) && get_resource_type($sourceImage) === 'gd') {
+			if (is_resource($sourceImage) && get_resource_type($sourceImage) === 'gd') {
 				// Get original width and height
 				$originalWidth = imagesx($sourceImage);
 				$originalHeight = imagesy($sourceImage);
@@ -271,19 +284,19 @@ class FileBehavior extends ModelBehavior {
 				$cropX = 0;
 				$cropY = 0;
 
-				foreach($settingsParams['thumbs'] as $thumbName => $thumbParam) {
-					if(is_array($thumbParam)) {
-						if(isset($thumbParam['width']) && is_array($thumbParam['width']) && count($thumbParam['width']) === 1) {
+				foreach ($settingsParams['thumbs'] as $thumbName => $thumbParam) {
+					if (is_array($thumbParam)) {
+						if (isset($thumbParam['width']) && is_array($thumbParam['width']) && count($thumbParam['width']) === 1) {
 							list($newWidth, $newHeight) = $this->byWidth($originalWidth, $originalHeight, $thumbParam['width'][0]);
-						} elseif(isset($thumbParam['height']) && is_array($thumbParam['height']) && count($thumbParam['height']) === 1) {
+						} elseif (isset($thumbParam['height']) && is_array($thumbParam['height']) && count($thumbParam['height']) === 1) {
 							list($newWidth, $newHeight) = $this->byHeight($originalWidth, $originalHeight, $thumbParam['height'][0]);
-						} elseif(isset($thumbParam['shorter']) && is_array($thumbParam['shorter']) && count($thumbParam['shorter']) === 2) {
+						} elseif (isset($thumbParam['shorter']) && is_array($thumbParam['shorter']) && count($thumbParam['shorter']) === 2) {
 							list($newWidth, $newHeight) = $this->byShorter($originalWidth, $originalHeight, $thumbParam['shorter'][0], $thumbParam['shorter'][1]);
-						} elseif(isset($thumbParam['longer']) && is_array($thumbParam['longer']) && count($thumbParam['longer']) === 2) {
+						} elseif (isset($thumbParam['longer']) && is_array($thumbParam['longer']) && count($thumbParam['longer']) === 2) {
 							list($newWidth, $newHeight) = $this->byLonger($originalWidth, $originalHeight, $thumbParam['longer'][0], $thumbParam['longer'][1]);
-						} elseif(isset($thumbParam['fit']) && is_array($thumbParam['fit']) && count($thumbParam['fit']) === 2) {
+						} elseif (isset($thumbParam['fit']) && is_array($thumbParam['fit']) && count($thumbParam['fit']) === 2) {
 							list($newWidth, $newHeight) = $this->byFit($originalWidth, $originalHeight, $thumbParam['fit'][0], $thumbParam['fit'][1]);
-						} elseif(isset($thumbParam['square']) && is_array($thumbParam['square']) && count($thumbParam['square']) === 1) {
+						} elseif (isset($thumbParam['square']) && is_array($thumbParam['square']) && count($thumbParam['square']) === 1) {
 							list($newWidth, $newHeight, $cropX, $cropY) = $this->bySquare($originalWidth, $originalHeight, $thumbParam['square'][0]);
 						} else {
 							$newWidth = $originalWidth;
@@ -296,7 +309,7 @@ class FileBehavior extends ModelBehavior {
 						@imagefill($newImage, 0, 0, imagecolorallocate($newImage, 255, 255, 255, 127));
 						imagecopyresampled($newImage, $sourceImage, 0, 0, 0, 0, $newWidth, $newHeight, $originalWidth, $originalHeight);
 
-						if(isset($thumbParam['square'])) {
+						if (isset($thumbParam['square'])) {
 							$newWidth = $newHeight = min($newWidth, $newHeight);
 
 							$cropImage = imagecreatetruecolor($newWidth, $newHeight);
@@ -305,7 +318,7 @@ class FileBehavior extends ModelBehavior {
 							$newImage = $cropImage;
 						}
 
-						if(isset($thumbParam['watermark']) && file_exists($settingsParams['watermark'])) {
+						if (isset($thumbParam['watermark']) && file_exists($settingsParams['watermark'])) {
 							$watermarkImage = imagecreatefrompng($settingsParams['watermark']);
 
 							$watermarkPositions = $this->getPosition(imagesx($newImage), imagesy($newImage), imagesx($watermarkImage), imagesy($watermarkImage), $thumbParam['watermark']);
@@ -318,15 +331,18 @@ class FileBehavior extends ModelBehavior {
 						$thumbFile = str_replace('original', $thumbName, $originalFile);
 
 						// Get image resource
-						switch($fileExtension) {
+						switch ($fileExtension) {
 							case 'gif':
 								imagegif($newImage, $thumbFile);
+
 								break;
 							case 'png':
 								imagepng($newImage, $thumbFile);
+
 								break;
 							default:
 								imagejpeg($newImage, $thumbFile, 100);
+
 								break;
 						}
 					}
@@ -346,16 +362,18 @@ class FileBehavior extends ModelBehavior {
 		$fileParts = explode('.', $fileName);
 		$fileExtension = end($fileParts);
 
-		switch($fileExtension) {
+		switch ($fileExtension) {
 			case 'jpg':
 			case 'jpeg':
 			case 'pjpg':
 			case 'pjpeg':
 				// Standarize JPEG image file extension
 				return 'jpg';
+
 				break;
 			default:
 				return $fileExtension;
+
 				break;
 		}
 	}
@@ -369,21 +387,24 @@ class FileBehavior extends ModelBehavior {
 	public function getBytes($sizeValue) {
 		$sizeValue = trim($sizeValue);
 
-		if(is_numeric($sizeValue)) {
+		if (is_numeric($sizeValue)) {
 			$sizeLetter = 'm';
 		} else {
 			$sizeLetter = strtolower($sizeValue[strlen($sizeValue)-1]);
 		}
 
-		switch($sizeLetter) {
+		switch ($sizeLetter) {
 			case 'g':
 				$sizeValue *= 1073741824;
+
 				break;
 			case 'm':
 				$sizeValue *= 1048576;
+
 				break;
 			case 'k':
 				$sizeValue *= 1024;
+
 				break;
 		}
 
@@ -401,36 +422,46 @@ class FileBehavior extends ModelBehavior {
 	 * @return array Coordinates of position watermark
 	 */
 	public function getPosition($newWidth, $newHeight, $watermarkWidth, $watermarkHeight, $positionValue = 1) {
-		switch(intval($positionValue)) {
+		switch (intval($positionValue)) {
 			case 1: // Top left
 				return array(0, 0);
+
 				break;
 			case 2: // Top center
 				return array(($newWidth / 2) - ($watermarkWidth / 2), 0);
+
 				break;
 			case 3: // Top right
 				return array($newWidth - $watermarkWidth, 0);
+
 				break;
 			case 4: // Middle left
 				return array(0, ($newHeight / 2) - ($watermarkHeight /2));
+
 				break;
 			case 5: // Middle center
 				return array(($newWidth / 2) - ($watermarkWidth / 2), ($newHeight / 2) - ($watermarkHeight /2));
+
 				break;
 			case 6: // Middle right
 				return array($newWidth - $watermarkWidth, ($newHeight / 2) - ($watermarkHeight /2));
+
 				break;
 			case 7: // Bottom left
 				return array(0, $newHeight - $watermarkHeight);
+
 				break;
 			case 8: // Bottom center
 				return array(($newWidth / 2) - ($watermarkWidth / 2), $newHeight - $watermarkHeight);
+
 				break;
 			case 9: // Bottom right
 				return array($newWidth - $watermarkWidth, $newHeight - $watermarkHeight);
+
 				break;
 			default:
 				return array(0, 0);
+
 				break;
 		}
 	}
@@ -446,7 +477,7 @@ class FileBehavior extends ModelBehavior {
 	public function byWidth($originalWidth, $originalHeight, $newWidth) {
 		$newWidth = intval($newWidth);
 
-		if($newWidth > $originalWidth) {
+		if ($newWidth > $originalWidth) {
 			$newWidth = $originalWidth;
 			$newHeight = $originalHeight;
 		} else {
@@ -467,7 +498,7 @@ class FileBehavior extends ModelBehavior {
 	public function byHeight($originalWidth, $originalHeight, $newHeight) {
 		$newHeight = intval($newHeight);
 
-		if($newHeight > $originalHeight) {
+		if ($newHeight > $originalHeight) {
 			$newHeight = $originalHeight;
 			$newWidth = $originalWidth;
 		} else {
@@ -490,7 +521,7 @@ class FileBehavior extends ModelBehavior {
 		$newWidth = intval($newWidth);
 		$newHeight = intval($newHeight);
 
-		if($originalWidth < $originalHeight) {
+		if ($originalWidth < $originalHeight) {
 			list($newWidth, $newHeight) = $this->byWidth($originalWidth, $originalHeight, $newWidth);
 		} else {
 			list($newWidth, $newHeight) = $this->byHeight($originalWidth, $originalHeight, $newHeight);
@@ -512,7 +543,7 @@ class FileBehavior extends ModelBehavior {
 		$newWidth = intval($newWidth);
 		$newHeight = intval($newHeight);
 
-		if($originalWidth > $originalHeight) {
+		if ($originalWidth > $originalHeight) {
 			list($newWidth, $newHeight) = $this->byWidth($originalWidth, $originalHeight, $newWidth);
 		} else {
 			list($newWidth, $newHeight) = $this->byHeight($originalWidth, $originalHeight, $newHeight);
@@ -555,7 +586,7 @@ class FileBehavior extends ModelBehavior {
 		$cropWidth = 0;
 		$cropHeight = 0;
 
-		if($newWidth > $newHeight) {
+		if ($newWidth > $newHeight) {
 			$cropWidth = ($newWidth - $newHeight)/2;
 		} else {
 			$cropHeight = ($newHeight - $newWidth)/2;
@@ -575,15 +606,15 @@ class FileBehavior extends ModelBehavior {
 		$validateKeys = array_keys($validateValue);
 		$validateVariable = array_shift($validateValue);
 
-		if($model->id) {
+		if ($model->id) {
 			$file = $model->findById($model->id);
 
-			if(!empty($file[$model->name][$validateKeys[0]]) && file_exists($this->settings[$model->name][$validateKeys[0]]['path'] . DS . $file[$model->name][$validateKeys[0]])) {
+			if (!empty($file[$model->name][$validateKeys[0]]) && file_exists($this->settings[$model->name][$validateKeys[0]]['path'] . DS . $file[$model->name][$validateKeys[0]])) {
 				return true;
 			}
 		}
 
-		if(!empty($validateVariable['tmp_name'])) {
+		if (!empty($validateVariable['tmp_name'])) {
 			return true;
 		}
 
@@ -602,11 +633,11 @@ class FileBehavior extends ModelBehavior {
 		$validateKeys = array_keys($validateValue);
 		$validateVariable = array_shift($validateValue);
 
-		if(empty($validateVariable['tmp_name'])) {
+		if (empty($validateVariable['tmp_name'])) {
 			return true;
 		}
 
-		if(in_array($validateVariable['type'], $this->settings[$model->name][$validateKeys[0]]['types'])) {
+		if (in_array($validateVariable['type'], $this->settings[$model->name][$validateKeys[0]]['types'])) {
 			return true;
 		}
 
@@ -625,11 +656,11 @@ class FileBehavior extends ModelBehavior {
 		$validateKeys = array_keys($validateValue);
 		$validateVariable = array_shift($validateValue);
 
-		if(empty($validateVariable['tmp_name'])) {
+		if (empty($validateVariable['tmp_name'])) {
 			return true;
 		}
 
-		if(in_array($this->getExtension($validateVariable['name']), $this->settings[$model->name][$validateKeys[0]]['extensions'])) {
+		if (in_array($this->getExtension($validateVariable['name']), $this->settings[$model->name][$validateKeys[0]]['extensions'])) {
 			return true;
 		}
 
