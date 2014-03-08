@@ -1,17 +1,21 @@
 <?php
+
 /**
  * File Behavior for upload files and processing images.
  *
- * Tested on CakePHP 2.4.3/PHP 5.4.0
+ * Tested on CakePHP 2.4.5/PHP 5.4.0/GD 2.0.1
  *
- * @todo          Rewrite for use built-in validation (e.g. Validation::extension(); and Validation::mimeType();) and other addition (e.g. CakeNumber::fromReadableSize();) - Q1 2014
- * @todo          Rewrite to PHP 5.5 for new function from GD2 library (e.g. imagescale(); or imagecrop();) - Q1 2014
+ * @todo          Rewrite for use built-in validation (e.g. Validation::extension(); and Validation::mimeType();) and other addition (e.g. CakeNumber::fromReadableSize();) - Q3 2014
+ * @todo          Rewrite to PHP 5.5 for new function from GD2 library (e.g. imagescale(); or imagecrop();) - Q4 2014
  * @copyright     Radosław Zając, kicaj (kicaj@kdev.pl)
- * @link          http://repo.kdev.pl/filebehavior
+ * @link          http://repo.kdev.pl/filebehavior Repository
  * @package       Cake.Model.Behavior
- * @version       1.4.20131222
+ * @version       1.5.20140309
  * @license       http://www.opensource.org/licenses/mit-license.php MIT License
  */
+
+App::uses('ModelBehavior', 'Model');
+
 class FileBehavior extends ModelBehavior {
 
 	/**
@@ -19,8 +23,8 @@ class FileBehavior extends ModelBehavior {
 	 *
 	 * @var array
 	 */
-	public $default = array(
-		'types' => array( // default allowed types
+	protected $_default = array(
+		'types' => array( // Default allowed types
 			'image/jpeg',
 			'image/jpg',
 			'image/pjpeg',
@@ -29,7 +33,7 @@ class FileBehavior extends ModelBehavior {
 			'image/x-png',
 			'image/gif'
 		),
-		'extensions' => array( // default allowed extensions
+		'extensions' => array( // Default allowed extensions
 			'jpeg',
 			'jpg',
 			'pjpg',
@@ -37,9 +41,10 @@ class FileBehavior extends ModelBehavior {
 			'png',
 			'gif'
 		),
-		'thumbs' => array(),
 		'path' => 'files',
-		'watermark' => ''
+		'background' => array(255, 255, 255, 127),
+		'watermark' => '',
+		'thumbs' => array()
 	);
 
 	/**
@@ -47,17 +52,17 @@ class FileBehavior extends ModelBehavior {
 	 *
 	 * @var array
 	 */
-	public $validate = array(
+	protected $_validate = array(
 		'max' => array(
 			'rule' => array('fileSize', '<=', '10M'),
 			'message' => 'Niestety, ale maksymalny rozmiar pliku został przekroczony!'
 		),
 		'type' => array(
-			'rule' => 'fileType',
+			'rule' => array('fileType'),
 			'message' => 'Niestety, ale niedozwolony typ pliku!'
 		),
 		'ext' => array(
-			'rule' => 'fileExtension',
+			'rule' => array('fileExtension'),
 			'message' => 'Niestety, ale niedozwolony typ rozszerzenia pliku!'
 		)
 	);
@@ -70,32 +75,32 @@ class FileBehavior extends ModelBehavior {
 	public $files = array();
 
 	/**
-	 * Setup behavior
+	 * Initiate behavior
 	 *
-	 * @param Model $model Reference to model
-	 * @param array $settings Array of settings
+	 * @param Model $model Instance of Model
+	 * @param array $config Array of configuration settings
 	 */
-	public function setup(Model $model, $settings = array()) {
-		foreach ($settings as $field => $array) {
+	public function setup(Model $model, $config = array()) {
+		foreach ($config as $field => $array) {
 			// Set validations rules
 			$validation = array();
 
-			if (isset($model->validate[$field])) {
+			if (isset($model->_validate[$field])) {
 				$validation = $model->validate[$field];
 			}
 
-			$model->validate[$field] = array_merge($this->validate, $validation);
+			$model->validate[$field] = array_merge($this->_validate, $validation);
 
-			$this->settings[$model->name][$field] = array_merge($this->default, $array);
+			$this->settings[$model->name][$field] = array_merge($this->_default, $array);
 		}
 	}
 
 	/**
-	 * Callback beforeSave
+	 * beforeSave callback
 	 *
-	 * @param Model $model Reference to model
+	 * @param Model $model Instance of Model
 	 * @param array $options Options passed from model
-	 * @return boolean True if is success
+	 * @return boolean True if it is successful
 	 */
 	public function beforeSave(Model $model, $options = array()) {
 		foreach ($this->settings[$model->name] as $fieldName => $fieldOptions) {
@@ -117,11 +122,11 @@ class FileBehavior extends ModelBehavior {
 	}
 
 	/**
-	 * Callback afterSave
+	 * afterSave callback
 	 *
-	 * @param Model $model Reference to model
+	 * @param Model $model Instance of Model
 	 * @param boolean $created True if this save created a new record
-	 * @param array $options Options passed from Model::save()
+	 * @param array $options Options passed from Model
 	 * @return boolean
 	 */
 	public function afterSave(Model $model, $created, $options = array()) {
@@ -133,11 +138,11 @@ class FileBehavior extends ModelBehavior {
 	}
 
 	/**
-	 * Callback beforeDelete
+	 * beforeDelete callback
 	 *
-	 * @param Model $model Reference to model
+	 * @param Model $model Instance of Model
 	 * @param boolean $cascade If true records that depend on this record will also be deleted
-	 * @return boolean True if is success
+	 * @return boolean True if it is successful
 	 */
 	public function beforeDelete(Model $model, $cascade = true) {
 		return $this->deleteFile($model);
@@ -281,6 +286,9 @@ class FileBehavior extends ModelBehavior {
 				$originalWidth = imagesx($sourceImage);
 				$originalHeight = imagesy($sourceImage);
 
+				$offsetX = 0;
+				$offsetY = 0;
+
 				$cropX = 0;
 				$cropY = 0;
 
@@ -296,27 +304,58 @@ class FileBehavior extends ModelBehavior {
 							list($newWidth, $newHeight) = $this->byLonger($originalWidth, $originalHeight, $thumbParam['longer'][0], $thumbParam['longer'][1]);
 						} elseif (isset($thumbParam['fit']) && is_array($thumbParam['fit']) && count($thumbParam['fit']) === 2) {
 							list($newWidth, $newHeight) = $this->byFit($originalWidth, $originalHeight, $thumbParam['fit'][0], $thumbParam['fit'][1]);
+						} elseif (isset($thumbParam['fit']) && is_array($thumbParam['fit']) && count($thumbParam['fit']) === 3) {
+							list($newWidth, $newHeight, $offsetX, $offsetY) = $this->byFit($originalWidth, $originalHeight, $thumbParam['fit'][0], $thumbParam['fit'][1], $thumbParam['fit'][2]);
 						} elseif (isset($thumbParam['square']) && is_array($thumbParam['square']) && count($thumbParam['square']) === 1) {
 							list($newWidth, $newHeight, $cropX, $cropY) = $this->bySquare($originalWidth, $originalHeight, $thumbParam['square'][0]);
+						} elseif (isset($thumbParam['square']) && is_array($thumbParam['square']) && count($thumbParam['square']) === 2) {
+							list($newWidth, $newHeight, $offsetX, $offsetY) = $this->bySquare($originalWidth, $originalHeight, $thumbParam['square'][0], $thumbParam['square'][1]);
 						} else {
 							$newWidth = $originalWidth;
 							$newHeight = $originalHeight;
 						}
 
-						$newImage = @imagecreatetruecolor($newWidth, $newHeight);
-						@imagealphablending($newImage, false);
-						@imagesavealpha($newImage, true);
-						@imagefill($newImage, 0, 0, imagecolorallocate($newImage, 255, 255, 255, 127));
+						$newImage = imagecreatetruecolor($newWidth, $newHeight);
 						imagecopyresampled($newImage, $sourceImage, 0, 0, 0, 0, $newWidth, $newHeight, $originalWidth, $originalHeight);
 
-						if (isset($thumbParam['square'])) {
-							$newWidth = $newHeight = min($newWidth, $newHeight);
+						if (isset($thumbParam['square']) && is_array($thumbParam['square'])) {
+							if (count($thumbParam['square']) === 1) {
+								$newWidth = $newHeight = min($newWidth, $newHeight);
 
-							$cropImage = imagecreatetruecolor($newWidth, $newHeight);
-							imagecopyresampled($cropImage, $newImage, 0, 0, $cropX, $cropY, $newWidth, $newHeight, $newWidth, $newHeight);
+								$cropImage = imagecreatetruecolor($newWidth, $newHeight);
+								imagecopyresampled($cropImage, $newImage, 0, 0, $cropX, $cropY, $newWidth, $newHeight, $newWidth, $newHeight);
+							} elseif (count($thumbParam['square']) === 2) {
+								$newWidth = $newHeight = max($newWidth, $newHeight);
+
+								$cropImage = imagecreatetruecolor($newWidth, $newHeight);
+
+								if (is_array($settingsParams['background'])) {
+									// Set background color and transparent indicates
+									imagefill($cropImage, 0, 0, imagecolorallocatealpha($cropImage, $settingsParams['background'][0], $settingsParams['background'][1], $settingsParams['background'][2], $settingsParams['background'][3]));
+								}
+
+								imagecopyresampled($cropImage, $newImage, $offsetX, $offsetY, 0, 0, $newWidth, $newHeight, $newWidth, $newHeight);
+							}
 
 							$newImage = $cropImage;
 						}
+
+						if (isset($thumbParam['fit']) && is_array($thumbParam['fit']) && count($thumbParam['fit']) === 3) {
+							$fitImage = imagecreatetruecolor($newWidth + (2 * $offsetX), $newHeight + (2 * $offsetY));
+
+							if (is_array($settingsParams['background'])) {
+								// Set background color and transparent indicates
+								imagefill($fitImage, 0, 0, imagecolorallocatealpha($fitImage, $settingsParams['background'][0], $settingsParams['background'][1], $settingsParams['background'][2], $settingsParams['background'][3]));
+							}
+
+							imagecopyresampled($fitImage, $newImage, $offsetX, $offsetY, 0, 0, $newWidth, $newHeight, $newWidth, $newHeight);
+
+							$newImage = $fitImage;
+						}
+
+
+						imagealphablending($newImage, false);
+						imagesavealpha($newImage, true);
 
 						if (isset($thumbParam['watermark']) && file_exists($settingsParams['watermark'])) {
 							$watermarkImage = imagecreatefrompng($settingsParams['watermark']);
@@ -481,10 +520,10 @@ class FileBehavior extends ModelBehavior {
 			$newWidth = $originalWidth;
 			$newHeight = $originalHeight;
 		} else {
-			$newHeight = $newWidth * ($originalHeight / $originalWidth);
+			$newHeight = intval($newWidth * ($originalHeight / $originalWidth));
 		}
 
-		return array(intval($newWidth), intval($newHeight));
+		return array($newWidth, $newHeight);
 	}
 
 	/**
@@ -502,10 +541,10 @@ class FileBehavior extends ModelBehavior {
 			$newHeight = $originalHeight;
 			$newWidth = $originalWidth;
 		} else {
-			$newWidth = $newHeight * ($originalWidth / $originalHeight);
+			$newWidth = intval($newHeight * ($originalWidth / $originalHeight));
 		}
 
-		return array(intval($newWidth), intval($newHeight));
+		return array($newWidth, $newHeight);
 	}
 
 	/**
@@ -527,7 +566,7 @@ class FileBehavior extends ModelBehavior {
 			list($newWidth, $newHeight) = $this->byHeight($originalWidth, $originalHeight, $newHeight);
 		}
 
-		return array(intval($newWidth), intval($newHeight));
+		return array($newWidth, $newHeight);
 	}
 
 	/**
@@ -549,7 +588,7 @@ class FileBehavior extends ModelBehavior {
 			list($newWidth, $newHeight) = $this->byHeight($originalWidth, $originalHeight, $newHeight);
 		}
 
-		return array(intval($newWidth), intval($newHeight));
+		return array($newWidth, $newHeight);
 	}
 
 	/**
@@ -559,15 +598,45 @@ class FileBehavior extends ModelBehavior {
 	 * @param integer $originalHeight Original height of uploaded image
 	 * @param integer $newWidth Set new image width
 	 * @param integer $newHeight Set new image height
-	 * @return array New width and height
+	 * @param boolean $originalKeep Save original shape
+	 * @return array New width and height and offsets of position with keeping original shape
 	 */
-	public function byFit($originalWidth, $originalHeight, $newWidth, $newHeight) {
+	public function byFit($originalWidth, $originalHeight, $newWidth, $newHeight, $originalKeep = false) {
 		$newWidth = intval($newWidth);
 		$newHeight = intval($newHeight);
 
-		list($newWidth, $newHeight) = $this->byLonger($originalWidth, $originalHeight, $newWidth, $newHeight);
+		if ($originalKeep === false) {
+			list($newWidth, $newHeight) = $this->byLonger($originalWidth, $originalHeight, $newWidth, $newHeight);
 
-		return array(intval($newWidth), intval($newHeight));
+			return array($newWidth, $newHeight);
+		} else {
+			if ($originalWidth > $originalHeight) {
+				if ($newWidth < $newHeight) {
+					$newSizes = $this->byLonger($originalWidth, $originalHeight, $newWidth, $newHeight);
+				} else {
+					$newSizes = $this->byShorter($originalWidth, $originalHeight, $newWidth, $newHeight);
+				}
+			} else {
+				if ($newHeight < $newWidth) {
+					$newSizes = $this->byLonger($originalWidth, $originalHeight, $newWidth, $newHeight);
+				} else {
+					$newSizes = $this->byShorter($originalWidth, $originalHeight, $newWidth, $newHeight);
+				}
+			}
+
+			$offsetHorizontal = 0;
+			$offsetVertical = 0;
+
+			if ($newWidth > $newSizes[0]) {
+				$offsetHorizontal = abs(($newWidth - $newSizes[0]) / 2);
+			}
+
+			if ($newHeight > $newSizes[1]) {
+				$offsetVertical = abs(($newHeight - $newSizes[1]) / 2);
+			}
+
+			return array($newSizes[0], $newSizes[1], $offsetHorizontal, $offsetVertical);
+		}
 	}
 
 	/**
@@ -576,23 +645,39 @@ class FileBehavior extends ModelBehavior {
 	 * @param integer $originalWidth Original width of uploaded image
 	 * @param integer $originalHeight Original height of uploaded image
 	 * @param integer $newSide Set new image side
-	 * @return array New width and height with coordinates of crop
+	 * @param boolean $originalKeep Save original shape
+	 * @return array New width and height with coordinates of crop or offsets of position
 	 */
-	public function bySquare($originalWidth, $originalHeight, $newSide) {
+	public function bySquare($originalWidth, $originalHeight, $newSide, $originalKeep = false) {
 		$newSide = intval($newSide);
 
-		list($newWidth, $newHeight) = $this->byShorter($originalWidth, $originalHeight, $newSide, $newSide);
+		if ($originalKeep === false) {
+			list($newWidth, $newHeight) = $this->byShorter($originalWidth, $originalHeight, $newSide, $newSide);
 
-		$cropWidth = 0;
-		$cropHeight = 0;
+			$cropWidth = 0;
+			$cropHeight = 0;
 
-		if ($newWidth > $newHeight) {
-			$cropWidth = ($newWidth - $newHeight)/2;
+			if ($newWidth > $newHeight) {
+				$cropWidth = intval(($newWidth - $newHeight) / 2);
+			} else {
+				$cropHeight = intval(($newHeight - $newWidth) / 2);
+			}
+
+			return array($newWidth, $newHeight, $cropWidth, $cropHeight);
 		} else {
-			$cropHeight = ($newHeight - $newWidth)/2;
-		}
+			list($newWidth, $newHeight) = $this->byLonger($originalWidth, $originalHeight, $newSide, $newSide);
 
-		return array($newWidth, $newHeight, $cropWidth, $cropHeight);
+			$offsetHorizontal = 0;
+			$offsetVertical = 0;
+
+			if (($newWidth - $newSide) != 0) {
+				$offsetHorizontal = abs(($newWidth - $newSide) / 2);
+			} else {
+				$offsetVertical = abs(($newHeight - $newSide) / 2);
+			}
+
+			return array($newWidth, $newHeight, $offsetHorizontal, $offsetVertical);
+		}
 	}
 
 	/**
