@@ -325,9 +325,7 @@ class FileBehavior extends ModelBehavior {
 								$cropImage = imagecreatetruecolor($newWidth, $newHeight);
 								imagecopyresampled($cropImage, $newImage, 0, 0, $cropX, $cropY, $newWidth, $newHeight, $newWidth, $newHeight);
 							} elseif (count($thumbParam['square']) === 2) {
-								$newWidth = $newHeight = max($newWidth, $newHeight);
-
-								$cropImage = imagecreatetruecolor($newWidth, $newHeight);
+								$cropImage = imagecreatetruecolor($newWidth + (2 * $offsetX), $newHeight + (2 * $offsetY));
 
 								if (is_array($settingsParams['background'])) {
 									// Set background color and transparent indicates
@@ -352,7 +350,6 @@ class FileBehavior extends ModelBehavior {
 
 							$newImage = $fitImage;
 						}
-
 
 						imagealphablending($newImage, false);
 						imagesavealpha($newImage, true);
@@ -670,10 +667,12 @@ class FileBehavior extends ModelBehavior {
 			$offsetHorizontal = 0;
 			$offsetVertical = 0;
 
-			if (($newWidth - $newSide) != 0) {
-				$offsetHorizontal = abs(($newWidth - $newSide) / 2);
-			} else {
-				$offsetVertical = abs(($newHeight - $newSide) / 2);
+			if (($newSide - $newWidth) > 0) {
+				$offsetHorizontal = abs(($newSide - $newWidth) / 2);
+			}
+
+			if (($newSide - $newHeight) > 0) {
+				$offsetVertical = abs(($newSide - $newHeight) / 2);
 			}
 
 			return array($newWidth, $newHeight, $offsetHorizontal, $offsetVertical);
