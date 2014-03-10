@@ -357,7 +357,7 @@ class FileBehavior extends ModelBehavior {
 						if (isset($thumbParam['watermark']) && file_exists($settingsParams['watermark'])) {
 							$watermarkImage = imagecreatefrompng($settingsParams['watermark']);
 
-							$watermarkPositions = $this->getPosition(imagesx($newImage), imagesy($newImage), imagesx($watermarkImage), imagesy($watermarkImage), $thumbParam['watermark']);
+							$watermarkPositions = $this->getPosition(imagesx($newImage), imagesy($newImage), imagesx($watermarkImage), imagesy($watermarkImage), $offsetX, $offsetY, $thumbParam['watermark']);
 
 							// Set transparent
 							imagealphablending($newImage, true);
@@ -454,25 +454,27 @@ class FileBehavior extends ModelBehavior {
 	 * @param integer $newHeight New height of uploaded image
 	 * @param integer $watermarkWidth Original width of watermark image
 	 * @param integer $watermarkHeight Original height of watermark image
+	 * @param integer $offsetX Horizontal offset
+	 * @param integer $offsetY Vertical offset
 	 * @param integer $positionValue Value for position watermark, value between 1 and 9
 	 * @return array Coordinates of position watermark
 	 */
-	public function getPosition($newWidth, $newHeight, $watermarkWidth, $watermarkHeight, $positionValue = 1) {
+	public function getPosition($newWidth, $newHeight, $watermarkWidth, $watermarkHeight, $offsetX = 0, $offsetY = 0, $positionValue = 1) {
 		switch (intval($positionValue)) {
 			case 1: // Top left
-				return array(0, 0);
+				return array(0 + $offsetX, 0 + $offsetY);
 
 				break;
 			case 2: // Top center
-				return array(($newWidth / 2) - ($watermarkWidth / 2), 0);
+				return array(($newWidth / 2) - ($watermarkWidth / 2), 0 + $offsetY);
 
 				break;
 			case 3: // Top right
-				return array($newWidth - $watermarkWidth, 0);
+				return array(($newWidth - $watermarkWidth) - $offsetX, 0 + $offsetY);
 
 				break;
 			case 4: // Middle left
-				return array(0, ($newHeight / 2) - ($watermarkHeight /2));
+				return array(0 + $offsetX, ($newHeight / 2) - ($watermarkHeight /2));
 
 				break;
 			case 5: // Middle center
@@ -480,23 +482,23 @@ class FileBehavior extends ModelBehavior {
 
 				break;
 			case 6: // Middle right
-				return array($newWidth - $watermarkWidth, ($newHeight / 2) - ($watermarkHeight /2));
+				return array(($newWidth - $watermarkWidth) - $offsetX, ($newHeight / 2) - ($watermarkHeight /2));
 
 				break;
 			case 7: // Bottom left
-				return array(0, $newHeight - $watermarkHeight);
+				return array(0 + $offsetX, ($newHeight - $watermarkHeight) - $offsetY);
 
 				break;
 			case 8: // Bottom center
-				return array(($newWidth / 2) - ($watermarkWidth / 2), $newHeight - $watermarkHeight);
+				return array(($newWidth / 2) - ($watermarkWidth / 2), ($newHeight - $watermarkHeight) - $offsetY);
 
 				break;
 			case 9: // Bottom right
-				return array($newWidth - $watermarkWidth, $newHeight - $watermarkHeight);
+				return array(($newWidth - $watermarkWidth) - $offsetX, ($newHeight - $watermarkHeight) - $offsetY);
 
 				break;
 			default:
-				return array(0, 0);
+				return array(0 - $offsetX, 0 - $offsetY);
 
 				break;
 		}
