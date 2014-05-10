@@ -10,7 +10,7 @@
  * @copyright     Radosław Zając, kicaj (kicaj@kdev.pl)
  * @link          http://repo.kdev.pl/filebehavior Repository
  * @package       Cake.Model.Behavior
- * @version       1.5.20140309
+ * @version       1.6.20140510
  * @license       http://www.opensource.org/licenses/mit-license.php MIT License
  */
 
@@ -91,7 +91,11 @@ class FileBehavior extends ModelBehavior {
 
 			$model->validate[$field] = array_merge($this->_validate, $validation);
 
-			$this->settings[$model->name][$field] = array_merge($this->_default, $array);
+			if (is_array($array)) {
+				$this->settings[$model->name][$field] = array_merge($this->_default, $array);
+			} else {
+				$this->settings[$model->name][$array] = $this->_default;
+			}
 		}
 	}
 
@@ -103,18 +107,20 @@ class FileBehavior extends ModelBehavior {
 	 * @return boolean True if it is successful
 	 */
 	public function beforeSave(Model $model, $options = array()) {
-		foreach ($this->settings[$model->name] as $fieldName => $fieldOptions) {
-			// Check for temporary file
-			if (isset($model->data[$model->name][$fieldName]) && !empty($model->data[$model->name][$fieldName]['name']) && file_exists($model->data[$model->name][$fieldName]['tmp_name'])) {
-				// Settings for files
-				$this->files[$fieldName] = $model->data[$model->name][$fieldName];
-				$this->files[$fieldName]['path'] = $this->prepareDir($fieldOptions['path']);
-				$this->files[$fieldName]['name'] = $this->prepareName($model, $fieldName);
+		if (!empty($this->settings[$model->name])) {
+			foreach ($this->settings[$model->name] as $fieldName => $fieldOptions) {
+				// Check for temporary file
+				if (isset($model->data[$model->name][$fieldName]) && !empty($model->data[$model->name][$fieldName]['name']) && file_exists($model->data[$model->name][$fieldName]['tmp_name'])) {
+					// Settings for files
+					$this->files[$fieldName] = $model->data[$model->name][$fieldName];
+					$this->files[$fieldName]['path'] = $this->prepareDir($fieldOptions['path']);
+					$this->files[$fieldName]['name'] = $this->prepareName($model, $fieldName);
 
-				$model->data[$model->name][$fieldName] = $this->files[$fieldName]['name'];
-			} else {
-				// Delete file array from data when is not attached
-				unset($model->data[$model->alias][$fieldName]);
+					$model->data[$model->name][$fieldName] = $this->files[$fieldName]['name'];
+				} else {
+					// Delete file array from data when is not attached
+					unset($model->data[$model->alias][$fieldName]);
+				}
 			}
 		}
 
