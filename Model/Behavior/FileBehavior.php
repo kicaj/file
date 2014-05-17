@@ -92,9 +92,9 @@ class FileBehavior extends ModelBehavior {
 			$model->validate[$field] = array_merge($this->_validate, $validation);
 
 			if (is_array($array)) {
-				$this->settings[$model->name][$field] = array_merge($this->_default, $array);
+				$this->settings[$model->alias][$field] = array_merge($this->_default, $array);
 			} else {
-				$this->settings[$model->name][$array] = $this->_default;
+				$this->settings[$model->alias][$array] = $this->_default;
 			}
 		}
 	}
@@ -107,16 +107,16 @@ class FileBehavior extends ModelBehavior {
 	 * @return boolean True if it is successful
 	 */
 	public function beforeSave(Model $model, $options = array()) {
-		if (!empty($this->settings[$model->name])) {
-			foreach ($this->settings[$model->name] as $fieldName => $fieldOptions) {
+		if (!empty($this->settings[$model->alias])) {
+			foreach ($this->settings[$model->alias] as $fieldName => $fieldOptions) {
 				// Check for temporary file
-				if (isset($model->data[$model->name][$fieldName]) && !empty($model->data[$model->name][$fieldName]['name']) && file_exists($model->data[$model->name][$fieldName]['tmp_name'])) {
+				if (isset($model->data[$model->alias][$fieldName]) && !empty($model->data[$model->alias][$fieldName]['name']) && file_exists($model->data[$model->alias][$fieldName]['tmp_name'])) {
 					// Settings for files
-					$this->files[$fieldName] = $model->data[$model->name][$fieldName];
+					$this->files[$fieldName] = $model->data[$model->alias][$fieldName];
 					$this->files[$fieldName]['path'] = $this->prepareDir($fieldOptions['path']);
 					$this->files[$fieldName]['name'] = $this->prepareName($model, $fieldName);
 
-					$model->data[$model->name][$fieldName] = $this->files[$fieldName]['name'];
+					$model->data[$model->alias][$fieldName] = $this->files[$fieldName]['name'];
 				} else {
 					// Delete file array from data when is not attached
 					unset($model->data[$model->alias][$fieldName]);
@@ -169,8 +169,8 @@ class FileBehavior extends ModelBehavior {
 		if (isset($model->id)) {
 			$dataField = $model->findById($model->id);
 
-			if (is_array($dataField) && !empty($dataField) && is_file($this->files[$fieldName]['path'] . DS . $dataField[$model->name][$fieldName])) {
-				$filePattern = $this->settings[$model->name][$fieldName]['path'] . DS . substr($dataField[$model->name][$fieldName], 0, 14);
+			if (is_array($dataField) && !empty($dataField) && is_file($this->files[$fieldName]['path'] . DS . $dataField[$model->alias][$fieldName])) {
+				$filePattern = $this->settings[$model->alias][$fieldName]['path'] . DS . substr($dataField[$model->alias][$fieldName], 0, 14);
 
 				foreach (glob($filePattern . '*') as $fileName) {
 					// Remove file
@@ -215,8 +215,8 @@ class FileBehavior extends ModelBehavior {
 			$fileName = $fieldOptions['path'] . DS . $this->files[$fieldName]['name'];
 
 			if (move_uploaded_file($this->files[$fieldName]['tmp_name'], $fileName)) {
-				if (isset($this->settings[$model->name][$fieldName]['thumbs'])) {
-					$this->prepareThumbs($fileName, $this->settings[$model->name][$fieldName]);
+				if (isset($this->settings[$model->alias][$fieldName]['thumbs'])) {
+					$this->prepareThumbs($fileName, $this->settings[$model->alias][$fieldName]);
 				}
 			}
 		}
@@ -232,14 +232,14 @@ class FileBehavior extends ModelBehavior {
 		// Get field list of model schema
 		$modelSchema = $model->schema();
 
-		foreach ($this->settings[$model->name] as $fieldName => $fieldOptions) {
+		foreach ($this->settings[$model->alias] as $fieldName => $fieldOptions) {
 			// Check is field in model schema
 			if (isset($modelSchema[$fieldName])) {
 				$dataField = $model->findById($model->id);
 
-				if (is_array($dataField) && !empty($dataField[$model->name][$fieldName])) {
+				if (is_array($dataField) && !empty($dataField[$model->alias][$fieldName])) {
 					// Pattern for original file with thumbs
-					$filePattern = $this->settings[$model->name][$fieldName]['path'] . DS . substr($dataField[$model->name][$fieldName], 0, 14);
+					$filePattern = $this->settings[$model->alias][$fieldName]['path'] . DS . substr($dataField[$model->alias][$fieldName], 0, 14);
 
 					foreach (glob($filePattern . '*') as $fileName) {
 						// Remove file
@@ -713,7 +713,7 @@ class FileBehavior extends ModelBehavior {
 		if ($model->id) {
 			$file = $model->findById($model->id);
 
-			if (!empty($file[$model->name][$validateKeys[0]]) && file_exists($this->settings[$model->name][$validateKeys[0]]['path'] . DS . $file[$model->name][$validateKeys[0]])) {
+			if (!empty($file[$model->alias][$validateKeys[0]]) && file_exists($this->settings[$model->alias][$validateKeys[0]]['path'] . DS . $file[$model->alias][$validateKeys[0]])) {
 				return true;
 			}
 		}
@@ -741,7 +741,7 @@ class FileBehavior extends ModelBehavior {
 			return true;
 		}
 
-		if (in_array($validateVariable['type'], $this->settings[$model->name][$validateKeys[0]]['types'])) {
+		if (in_array($validateVariable['type'], $this->settings[$model->alias][$validateKeys[0]]['types'])) {
 			return true;
 		}
 
@@ -764,7 +764,7 @@ class FileBehavior extends ModelBehavior {
 			return true;
 		}
 
-		if (in_array($this->getExtension($validateVariable['name']), $this->settings[$model->name][$validateKeys[0]]['extensions'])) {
+		if (in_array($this->getExtension($validateVariable['name']), $this->settings[$model->alias][$validateKeys[0]]['extensions'])) {
 			return true;
 		}
 
