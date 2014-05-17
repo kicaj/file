@@ -10,7 +10,7 @@
  * @copyright     Radosław Zając, kicaj (kicaj@kdev.pl)
  * @link          http://repo.kdev.pl/filebehavior Repository
  * @package       Cake.Model.Behavior
- * @version       1.6.20140510
+ * @version       1.7.20140517
  * @license       http://www.opensource.org/licenses/mit-license.php MIT License
  */
 
@@ -322,6 +322,12 @@ class FileBehavior extends ModelBehavior {
 						}
 
 						$newImage = imagecreatetruecolor($newWidth, $newHeight);
+
+						if (is_array($settingsParams['background'])) {
+							// Set background color and transparent indicates
+							imagefill($newImage, 0, 0, imagecolorallocatealpha($newImage, $settingsParams['background'][0], $settingsParams['background'][1], $settingsParams['background'][2], $settingsParams['background'][3]));
+						}
+
 						imagecopyresampled($newImage, $sourceImage, 0, 0, 0, 0, $newWidth, $newHeight, $originalWidth, $originalHeight);
 
 						if (isset($thumbParam['square']) && is_array($thumbParam['square'])) {
@@ -329,6 +335,12 @@ class FileBehavior extends ModelBehavior {
 								$newWidth = $newHeight = min($newWidth, $newHeight);
 
 								$cropImage = imagecreatetruecolor($newWidth, $newHeight);
+
+								if (is_array($settingsParams['background'])) {
+									// Set background color and transparent indicates
+									imagefill($cropImage, 0, 0, imagecolorallocatealpha($cropImage, $settingsParams['background'][0], $settingsParams['background'][1], $settingsParams['background'][2], $settingsParams['background'][3]));
+								}
+
 								imagecopyresampled($cropImage, $newImage, 0, 0, $cropX, $cropY, $newWidth, $newHeight, $newWidth, $newHeight);
 							} elseif (count($thumbParam['square']) === 2) {
 								$cropImage = imagecreatetruecolor($newWidth + (2 * $offsetX), $newHeight + (2 * $offsetY));
