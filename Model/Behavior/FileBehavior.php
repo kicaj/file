@@ -10,7 +10,7 @@
  * @copyright     Radosław Zając, kicaj (kicaj@kdev.pl)
  * @link          http://repo.kdev.pl/filebehavior Repository
  * @package       Cake.Model.Behavior
- * @version       1.7.20140517
+ * @version       1.7.20140525
  * @license       http://www.opensource.org/licenses/mit-license.php MIT License
  */
 
@@ -85,7 +85,7 @@ class FileBehavior extends ModelBehavior {
 			// Set validations rules
 			$validation = array();
 
-			if (isset($model->_validate[$field])) {
+			if (isset($model->validate[$field])) {
 				$validation = $model->validate[$field];
 			}
 
