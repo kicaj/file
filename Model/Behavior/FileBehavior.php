@@ -3,14 +3,14 @@
 /**
  * File Behavior for upload files and processing images.
  *
- * Tested on CakePHP 2.4.5/PHP 5.4.0/GD 2.0.1
+ * Tested on CakePHP 2.5.2/PHP 5.5.10/GD 2.0.1
  *
  * @todo          Rewrite for use built-in validation (e.g. Validation::extension(); and Validation::mimeType();) and other addition (e.g. CakeNumber::fromReadableSize();) - Q3 2014
  * @todo          Rewrite to PHP 5.5 for new function from GD2 library (e.g. imagescale(); or imagecrop();) - Q4 2014
  * @copyright     Radosław Zając, kicaj (kicaj@kdev.pl)
  * @link          http://repo.kdev.pl/filebehavior Repository
  * @package       Cake.Model.Behavior
- * @version       1.7.20140525
+ * @version       1.7.20140726
  * @license       http://www.opensource.org/licenses/mit-license.php MIT License
  */
 
@@ -85,7 +85,7 @@ class FileBehavior extends ModelBehavior {
 			// Set validations rules
 			$validation = array();
 
-			if (isset($model->validate[$field])) {
+			if (isset($model->_validate[$field])) {
 				$validation = $model->validate[$field];
 			}
 
@@ -629,9 +629,9 @@ class FileBehavior extends ModelBehavior {
 		} else {
 			if ($originalWidth > $originalHeight) {
 				if ($newWidth < $newHeight) {
-					$newSizes = $this->byLonger($originalWidth, $originalHeight, $newHeight, $newHeight);
+					$newSizes = $this->byShorter($originalWidth, $originalHeight, $newHeight, $newHeight);
 				} else {
-					$newSizes = $this->byShorter($originalWidth, $originalHeight, $newWidth, $newWidth);
+					$newSizes = $this->byLonger($originalWidth, $originalHeight, $newWidth, $newWidth);
 				}
 			} else {
 				if ($newHeight < $newWidth) {
