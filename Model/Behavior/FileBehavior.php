@@ -78,14 +78,14 @@ class FileBehavior extends ModelBehavior {
 	 * Initiate behavior
 	 *
 	 * @param Model $model Instance of Model
-	 * @param array $config Array of configuration settings
+	 * @param array $config Configuration settings
 	 */
 	public function setup(Model $model, $config = array()) {
 		foreach ($config as $field => $array) {
 			// Set validations rules
 			$validation = array();
 
-			if (isset($model->_validate[$field])) {
+			if (isset($model->validate[$field])) {
 				$validation = $model->validate[$field];
 			}
 
