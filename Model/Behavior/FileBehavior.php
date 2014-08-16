@@ -259,8 +259,8 @@ class FileBehavior extends ModelBehavior {
 	 * @param array $thumbParams Settings for uploaded files
 	 * @return boolean Output image to save file
 	 */
-	public function prepareThumbs($originalFile, $settingsParams) {
-		if (is_file($originalFile) && is_array($settingsParams)) {
+	public function prepareThumbs($originalFile, $settingParams) {
+		if (is_file($originalFile) && is_array($settingParams)) {
 			// Get extension from original file
 			$fileExtension = $this->getExtension($originalFile);
 
@@ -298,7 +298,7 @@ class FileBehavior extends ModelBehavior {
 				$cropX = 0;
 				$cropY = 0;
 
-				foreach ($settingsParams['thumbs'] as $thumbName => $thumbParam) {
+				foreach ($settingParams['thumbs'] as $thumbName => $thumbParam) {
 					if (is_array($thumbParam)) {
 						if (isset($thumbParam['width']) && is_array($thumbParam['width']) && count($thumbParam['width']) === 1) {
 							list($newWidth, $newHeight) = $this->byWidth($originalWidth, $originalHeight, $thumbParam['width'][0]);
@@ -323,9 +323,9 @@ class FileBehavior extends ModelBehavior {
 
 						$newImage = imagecreatetruecolor($newWidth, $newHeight);
 
-						if (is_array($settingsParams['background'])) {
+						if (is_array($settingParams['background'])) {
 							// Set background color and transparent indicates
-							imagefill($newImage, 0, 0, imagecolorallocatealpha($newImage, $settingsParams['background'][0], $settingsParams['background'][1], $settingsParams['background'][2], $settingsParams['background'][3]));
+							imagefill($newImage, 0, 0, imagecolorallocatealpha($newImage, $settingParams['background'][0], $settingParams['background'][1], $settingParams['background'][2], $settingParams['background'][3]));
 						}
 
 						imagecopyresampled($newImage, $sourceImage, 0, 0, 0, 0, $newWidth, $newHeight, $originalWidth, $originalHeight);
@@ -333,9 +333,9 @@ class FileBehavior extends ModelBehavior {
 						if (isset($thumbParam['square']) && is_array($thumbParam['square']) || isset($thumbParam['fit']) && is_array($thumbParam['fit'])) {
 							$fitImage = imagecreatetruecolor($newWidth + (2 * $offsetX) - (2 * $cropX), $newHeight + (2 * $offsetY) - (2 * $cropY));
 
-							if (is_array($settingsParams['background'])) {
+							if (is_array($settingParams['background'])) {
 								// Set background color and transparent indicates
-								imagefill($fitImage, 0, 0, imagecolorallocatealpha($fitImage, $settingsParams['background'][0], $settingsParams['background'][1], $settingsParams['background'][2], $settingsParams['background'][3]));
+								imagefill($fitImage, 0, 0, imagecolorallocatealpha($fitImage, $settingParams['background'][0], $settingParams['background'][1], $settingParams['background'][2], $settingParams['background'][3]));
 							}
 
 							imagecopyresampled($fitImage, $newImage, $offsetX, $offsetY, $cropX, $cropY, $newWidth, $newHeight, $newWidth, $newHeight);
@@ -346,8 +346,8 @@ class FileBehavior extends ModelBehavior {
 						imagealphablending($newImage, false);
 						imagesavealpha($newImage, true);
 
-						if (isset($thumbParam['watermark']) && file_exists($settingsParams['watermark'])) {
-							$watermarkImage = imagecreatefrompng($settingsParams['watermark']);
+						if (isset($thumbParam['watermark']) && file_exists($settingParams['watermark'])) {
+							$watermarkImage = imagecreatefrompng($settingParams['watermark']);
 
 							$watermarkPositions = $this->getPosition(imagesx($newImage), imagesy($newImage), imagesx($watermarkImage), imagesy($watermarkImage), $offsetX, $offsetY, $thumbParam['watermark']);
 
