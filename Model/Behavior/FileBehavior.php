@@ -10,7 +10,7 @@
  * @copyright     Radosław Zając, kicaj (kicaj@kdev.pl)
  * @link          http://repo.kdev.pl/filebehavior Repository
  * @package       Cake.Model.Behavior
- * @version       1.8.20140815
+ * @version       1.9.20140816
  * @license       http://www.opensource.org/licenses/mit-license.php MIT License
  */
 
@@ -309,13 +309,13 @@ class FileBehavior extends ModelBehavior {
 						} elseif (isset($thumbParam['longer']) && is_array($thumbParam['longer']) && count($thumbParam['longer']) === 2) {
 							list($newWidth, $newHeight) = $this->byLonger($originalWidth, $originalHeight, $thumbParam['longer'][0], $thumbParam['longer'][1]);
 						} elseif (isset($thumbParam['fit']) && is_array($thumbParam['fit']) && count($thumbParam['fit']) === 2) {
-							list($newWidth, $newHeight, $offsetX, $offsetY) = $this->byFit($originalWidth, $originalHeight, $thumbParam['fit'][0], $thumbParam['fit'][1]);
+							list($newWidth, $newHeight, $offsetX, $offsetY, $cropX, $cropY) = $this->byFit($originalWidth, $originalHeight, $thumbParam['fit'][0], $thumbParam['fit'][1]);
 						} elseif (isset($thumbParam['fit']) && is_array($thumbParam['fit']) && count($thumbParam['fit']) === 3) {
-							list($newWidth, $newHeight, $offsetX, $offsetY) = $this->byFit($originalWidth, $originalHeight, $thumbParam['fit'][0], $thumbParam['fit'][1], $thumbParam['fit'][2]);
+							list($newWidth, $newHeight, $offsetX, $offsetY, $cropX, $cropY) = $this->byFit($originalWidth, $originalHeight, $thumbParam['fit'][0], $thumbParam['fit'][1], $thumbParam['fit'][2]);
 						} elseif (isset($thumbParam['square']) && is_array($thumbParam['square']) && count($thumbParam['square']) === 1) {
-							list($newWidth, $newHeight, $cropX, $cropY) = $this->bySquare($originalWidth, $originalHeight, $thumbParam['square'][0]);
+							list($newWidth, $newHeight, $offsetX, $offsetY, $cropX, $cropY) = $this->bySquare($originalWidth, $originalHeight, $thumbParam['square'][0]);
 						} elseif (isset($thumbParam['square']) && is_array($thumbParam['square']) && count($thumbParam['square']) === 2) {
-							list($newWidth, $newHeight, $offsetX, $offsetY) = $this->bySquare($originalWidth, $originalHeight, $thumbParam['square'][0], $thumbParam['square'][1]);
+							list($newWidth, $newHeight, $offsetX, $offsetY, $cropX, $cropY) = $this->bySquare($originalWidth, $originalHeight, $thumbParam['square'][0], $thumbParam['square'][1]);
 						} else {
 							$newWidth = $originalWidth;
 							$newHeight = $originalHeight;
@@ -330,52 +330,15 @@ class FileBehavior extends ModelBehavior {
 
 						imagecopyresampled($newImage, $sourceImage, 0, 0, 0, 0, $newWidth, $newHeight, $originalWidth, $originalHeight);
 
-						if (isset($thumbParam['square']) && is_array($thumbParam['square'])) {
-							if (count($thumbParam['square']) === 1) {
-								$newWidth = $newHeight = min($newWidth, $newHeight);
+						if (isset($thumbParam['square']) && is_array($thumbParam['square']) || isset($thumbParam['fit']) && is_array($thumbParam['fit'])) {
+							$fitImage = imagecreatetruecolor($newWidth + (2 * $offsetX) - (2 * $cropX), $newHeight + (2 * $offsetY) - (2 * $cropY));
 
-								$cropImage = imagecreatetruecolor($newWidth, $newHeight);
-
-								if (is_array($settingsParams['background'])) {
-									// Set background color and transparent indicates
-									imagefill($cropImage, 0, 0, imagecolorallocatealpha($cropImage, $settingsParams['background'][0], $settingsParams['background'][1], $settingsParams['background'][2], $settingsParams['background'][3]));
-								}
-
-								imagecopyresampled($cropImage, $newImage, 0, 0, $cropX, $cropY, $newWidth, $newHeight, $newWidth, $newHeight);
-							} elseif (count($thumbParam['square']) === 2) {
-								$cropImage = imagecreatetruecolor($newWidth + (2 * $offsetX), $newHeight + (2 * $offsetY));
-
-								if (is_array($settingsParams['background'])) {
-									// Set background color and transparent indicates
-									imagefill($cropImage, 0, 0, imagecolorallocatealpha($cropImage, $settingsParams['background'][0], $settingsParams['background'][1], $settingsParams['background'][2], $settingsParams['background'][3]));
-								}
-
-								imagecopyresampled($cropImage, $newImage, $offsetX, $offsetY, 0, 0, $newWidth, $newHeight, $newWidth, $newHeight);
+							if (is_array($settingsParams['background'])) {
+								// Set background color and transparent indicates
+								imagefill($fitImage, 0, 0, imagecolorallocatealpha($fitImage, $settingsParams['background'][0], $settingsParams['background'][1], $settingsParams['background'][2], $settingsParams['background'][3]));
 							}
 
-							$newImage = $cropImage;
-						}
-
-						if (isset($thumbParam['fit']) && is_array($thumbParam['fit'])) {
-							if (count($thumbParam['fit']) === 2) {
-								$fitImage = imagecreatetruecolor($newWidth, $newHeight);
-
-								if (is_array($settingsParams['background'])) {
-									// Set background color and transparent indicates
-									imagefill($fitImage, 0, 0, imagecolorallocatealpha($fitImage, $settingsParams['background'][0], $settingsParams['background'][1], $settingsParams['background'][2], $settingsParams['background'][3]));
-								}
-
-								imagecopyresampled($fitImage, $newImage, 0, 0, $offsetX, $offsetY, ($newWidth + (2 * $offsetX)), ($newHeight + (2 * $offsetY)), $newWidth, $newHeight);
-							} elseif (count($thumbParam['fit']) === 3) {
-								$fitImage = imagecreatetruecolor($newWidth + (2 * $offsetX), $newHeight + (2 * $offsetY));
-
-								if (is_array($settingsParams['background'])) {
-									// Set background color and transparent indicates
-									imagefill($fitImage, 0, 0, imagecolorallocatealpha($fitImage, $settingsParams['background'][0], $settingsParams['background'][1], $settingsParams['background'][2], $settingsParams['background'][3]));
-								}
-
-								imagecopyresampled($fitImage, $newImage, $offsetX, $offsetY, 0, 0, $newWidth, $newHeight, $newWidth, $newHeight);
-							}
+							imagecopyresampled($fitImage, $newImage, $offsetX, $offsetY, $cropX, $cropY, $newWidth, $newHeight, $newWidth, $newHeight);
 
 							$newImage = $fitImage;
 						}
@@ -633,49 +596,46 @@ class FileBehavior extends ModelBehavior {
 		$newWidth = intval($newWidth);
 		$newHeight = intval($newHeight);
 
-		if ($originalKeep === false) {
-			$newSizes = $this->byShorter($originalWidth, $originalHeight, $newWidth, $newHeight);
+		$offsetX = 0;
+		$offsetY = 0;
+		$cropX = 0;
+		$cropY = 0;
 
-			$offsetHorizontal = 0;
-			$offsetVertical = 0;
-
-			if ($newWidth < $newSizes[0]) {
-				$offsetHorizontal = intval(abs(($newSizes[0] - $newWidth) / 2));
-			}
-
-			if ($newHeight < $newSizes[1]) {
-				$offsetVertical = intval(abs(($newSizes[1] - $newHeight) / 2));
-			}
-
-			return array($newWidth, $newHeight, $offsetHorizontal, $offsetVertical);
-		} else {
+		if ($originalKeep === true) {
 			if ($originalWidth > $originalHeight) {
 				if ($newWidth < $newHeight) {
-					$newSizes = $this->byShorter($originalWidth, $originalHeight, $newHeight, $newHeight);
+					$newSizes = $this->byLonger($originalWidth, $originalHeight, $newWidth, $newHeight);
 				} else {
-					$newSizes = $this->byLonger($originalWidth, $originalHeight, $newWidth, $newWidth);
+					$newSizes = $this->byShorter($originalWidth, $originalHeight, $newWidth, $newHeight);
 				}
 			} else {
-				if ($newHeight < $newWidth) {
-					$newSizes = $this->byLonger($originalWidth, $originalHeight, $newHeight, $newHeight);
+				if ($newWidth > $newHeight) {
+					$newSizes = $this->byLonger($originalWidth, $originalHeight, $newWidth, $newHeight);
 				} else {
-					$newSizes = $this->byShorter($originalWidth, $originalHeight, $newWidth, $newWidth);
+					$newSizes = $this->byShorter($originalWidth, $originalHeight, $newWidth, $newHeight);
 				}
 			}
-
-			$offsetHorizontal = 0;
-			$offsetVertical = 0;
-
-			if ($newWidth > $newSizes[0]) {
-				$offsetHorizontal = intval(abs(($newWidth - $newSizes[0]) / 2));
+		} else {
+			if ($originalWidth > $originalHeight) {
+				$newSizes = $this->byLonger($originalWidth, $originalHeight, $newWidth, $newHeight);
+			} else {
+				$newSizes = $this->byShorter($originalWidth, $originalHeight, $newWidth, $newHeight);
 			}
-
-			if ($newHeight > $newSizes[1]) {
-				$offsetVertical = intval(abs(($newHeight - $newSizes[1]) / 2));
-			}
-
-			return array($newSizes[0], $newSizes[1], $offsetHorizontal, $offsetVertical);
 		}
+
+		if ($newWidth < $newSizes[0]) {
+			$cropX = ($newSizes[0] - $newWidth) / 2;
+		} else {
+			$offsetX = ($newWidth - $newSizes[0]) / 2;
+		}
+
+		if ($newHeight < $newSizes[1]) {
+			$cropY = ($newSizes[1] - $newHeight) / 2;
+		} else {
+			$offsetY = ($newHeight - $newSizes[1]) / 2;
+		}
+
+		return array($newSizes[0], $newSizes[1], $offsetX, $offsetY, $cropX, $cropY);
 	}
 
 	/**
@@ -690,35 +650,38 @@ class FileBehavior extends ModelBehavior {
 	public function bySquare($originalWidth, $originalHeight, $newSide, $originalKeep = false) {
 		$newSide = intval($newSide);
 
-		if ($originalKeep === false) {
-			list($newWidth, $newHeight) = $this->byShorter($originalWidth, $originalHeight, $newSide, $newSide);
+		$offsetX = 0;
+		$offsetY = 0;
+		$cropX = 0;
+		$cropY = 0;
 
-			$cropWidth = 0;
-			$cropHeight = 0;
-
-			if ($newWidth > $newHeight) {
-				$cropWidth = intval(($newWidth - $newHeight) / 2);
-			} else {
-				$cropHeight = intval(($newHeight - $newWidth) / 2);
-			}
-
-			return array($newWidth, $newHeight, $cropWidth, $cropHeight);
-		} else {
+		if ($originalKeep === true) {
 			list($newWidth, $newHeight) = $this->byLonger($originalWidth, $originalHeight, $newSide, $newSide);
 
-			$offsetHorizontal = 0;
-			$offsetVertical = 0;
-
-			if (($newSide - $newWidth) > 0) {
-				$offsetHorizontal = abs(($newSide - $newWidth) / 2);
+			if ($newSide > $newWidth) {
+				$offsetX = ($newSide - $newWidth) / 2;
 			}
 
-			if (($newSide - $newHeight) > 0) {
-				$offsetVertical = abs(($newSide - $newHeight) / 2);
+			if ($newSide > $newHeight) {
+				$offsetY = ($newSide - $newHeight) / 2;
+			}
+		} else {
+			list($newWidth, $newHeight) = $this->byShorter($originalWidth, $originalHeight, $newSide, $newSide);
+
+			if ($newSide < $newWidth) {
+				$cropX = ($newWidth - $newSide) / 2;
+			} else {
+				$offsetX = ($newSide - $newWidth) / 2;
 			}
 
-			return array($newWidth, $newHeight, $offsetHorizontal, $offsetVertical);
+			if ($newSide < $newHeight) {
+				$cropY = ($newHeight - $newSide) / 2;
+			} else {
+				$offsetY = ($newSide - $newHeight) / 2;
+			}
 		}
+
+		return array($newWidth, $newHeight, $offsetX, $offsetY, $cropX, $cropY);
 	}
 
 	/**
