@@ -616,11 +616,7 @@ class FileBehavior extends ModelBehavior {
 				}
 			}
 		} else {
-			if ($originalWidth > $originalHeight) {
-				$newSizes = $this->byLonger($originalWidth, $originalHeight, $newWidth, $newHeight);
-			} else {
-				$newSizes = $this->byShorter($originalWidth, $originalHeight, $newWidth, $newHeight);
-			}
+			$newSizes = $this->byShorter($originalWidth, $originalHeight, $newWidth, $newHeight);
 		}
 
 		if ($newWidth < $newSizes[0]) {
