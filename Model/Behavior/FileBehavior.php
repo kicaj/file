@@ -10,7 +10,7 @@
  * @copyright     Radosław Zając, kicaj (kicaj@kdev.pl)
  * @link          http://repo.kdev.pl/filebehavior Repository
  * @package       Cake.Model.Behavior
- * @version       1.9.20140817
+ * @version       1.9.20140830
  * @license       http://www.opensource.org/licenses/mit-license.php MIT License
  */
 
@@ -602,16 +602,24 @@ class FileBehavior extends ModelBehavior {
 		$cropY = 0;
 
 		if ($originalKeep === true) {
-			$newSizes = $this->byLonger($originalWidth, $originalHeight, $newWidth, $newHeight);
+			if ($originalWidth == $originalHeight) {
+				$newSizes = $this->byLonger($originalWidth, $originalHeight, min($newWidth, $newHeight), min($newWidth, $newHeight));
+			} else {
+				$newSizes = $this->byLonger($originalWidth, $originalHeight, $newWidth, $newHeight);
 
-			if ($newWidth < $newSizes[0] || $newHeight < $newSizes[1]) {
-				$newSizes = $this->byShorter($originalWidth, $originalHeight, $newWidth, $newHeight);
+				if ($newWidth < $newSizes[0] || $newHeight < $newSizes[1]) {
+					$newSizes = $this->byShorter($originalWidth, $originalHeight, $newWidth, $newHeight);
+				}
 			}
 		} else {
-			$newSizes = $this->byShorter($originalWidth, $originalHeight, $newWidth, $newHeight);
+			if ($originalWidth == $originalHeight) {
+				$newSizes = $this->byShorter($originalWidth, $originalHeight, max($newWidth, $newHeight), max($newWidth, $newHeight));
+			} else {
+				$newSizes = $this->byShorter($originalWidth, $originalHeight, $newWidth, $newHeight);
 
-			if ($newWidth > $newSizes[0] || $newHeight > $newSizes[1]) {
-				$newSizes = $this->byLonger($originalWidth, $originalHeight, $newWidth, $newHeight);
+				if ($newWidth > $newSizes[0] || $newHeight > $newSizes[1]) {
+					$newSizes = $this->byLonger($originalWidth, $originalHeight, $newWidth, $newHeight);
+				}
 			}
 		}
 
