@@ -1,0 +1,28 @@
+{
+	"name" : "kicaj/file",
+	"description" : "File plugin for CakePHP",
+	"type" : "cakephp-plugin",
+	"license" : "MIT",
+	"support" : {
+		"issues" : "https://github.com/kicaj/file/issues",
+		"source" : "https://github.com/kicaj/file"
+	},
+	"authors" : [{
+			"name" : "kicaj",
+			"email" : "kicaj@kdev.pl",
+			"role" : "Author"
+		}, {
+			"name" : "Others",
+			"homepage" : "https://github.com/kicaj/file/graphs/contributors"
+		}
+	],
+	"require" : {
+		"cakephp/cakephp" : "^3.5"
+	},
+	"autoload" : {
+		"psr-4" : {
+			"File\\" : "src"
+		}
+	},
+	"minimum-stability" : "dev"
+}
