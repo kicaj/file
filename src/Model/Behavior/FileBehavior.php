@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Model\Behavior;
+namespace File\Model\Behavior;
 
 use Cake\ORM\Behavior;
 use Cake\Utility\Text;
