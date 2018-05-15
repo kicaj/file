@@ -7,9 +7,7 @@ class FileHelper extends Helper
 {
 
     /**
-     * Load helpers
-     *
-     * @var array
+     * {@inheritdoc}
      */
     public $helpers = [
         'Html',
