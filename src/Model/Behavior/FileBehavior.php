@@ -109,7 +109,7 @@ class FileBehavior extends Behavior
 
                     $data[$fieldName] = $this->_files[$fieldName]['name'];
                 } else {
-                    if (is_array($data[$fieldName])) {
+                    if (isset($data[$fieldName]) && is_array($data[$fieldName])) {
                         // Delete file array from data when is not attached
                         unset($data[$fieldName]);
                     }
