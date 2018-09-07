@@ -139,7 +139,7 @@ class FileBehavior extends Behavior
 
     /**
      * Set path to directory for save uploaded files.
-     * If directory isn't exists, will be created with privileges to save and read.
+     * If directory isn't exists, will be created with full privileges.
      *
      * @param string $dirPath Path to directory
      * @return string Path to directory
