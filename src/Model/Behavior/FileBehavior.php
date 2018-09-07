@@ -258,21 +258,21 @@ class FileBehavior extends Behavior
                 foreach ($settingParams['thumbs'] as $thumbName => $thumbParam) {
                     if (is_array($thumbParam)) {
                         if (isset($thumbParam['width']) && is_array($thumbParam['width']) && count($thumbParam['width']) === 1) {
-                            list($newWidth, $newHeight) = $this->__byWidth($originalWidth, $originalHeight, $thumbParam['width'][0]);
+                            list($newWidth, $newHeight) = $this->_byWidth($originalWidth, $originalHeight, $thumbParam['width'][0]);
                         } elseif (isset($thumbParam['height']) && is_array($thumbParam['height']) && count($thumbParam['height']) === 1) {
-                            list($newWidth, $newHeight) = $this->__byHeight($originalWidth, $originalHeight, $thumbParam['height'][0]);
+                            list($newWidth, $newHeight) = $this->_byHeight($originalWidth, $originalHeight, $thumbParam['height'][0]);
                         } elseif (isset($thumbParam['shorter']) && is_array($thumbParam['shorter']) && count($thumbParam['shorter']) === 2) {
-                            list($newWidth, $newHeight) = $this->__byShorter($originalWidth, $originalHeight, $thumbParam['shorter'][0], $thumbParam['shorter'][1]);
+                            list($newWidth, $newHeight) = $this->_byShorter($originalWidth, $originalHeight, $thumbParam['shorter'][0], $thumbParam['shorter'][1]);
                         } elseif (isset($thumbParam['longer']) && is_array($thumbParam['longer']) && count($thumbParam['longer']) === 2) {
-                            list($newWidth, $newHeight) = $this->__byLonger($originalWidth, $originalHeight, $thumbParam['longer'][0], $thumbParam['longer'][1]);
+                            list($newWidth, $newHeight) = $this->_byLonger($originalWidth, $originalHeight, $thumbParam['longer'][0], $thumbParam['longer'][1]);
                         } elseif (isset($thumbParam['fit']) && is_array($thumbParam['fit']) && count($thumbParam['fit']) === 2) {
-                            list($newWidth, $newHeight, $offsetX, $offsetY, $cropX, $cropY) = $this->__byFit($originalWidth, $originalHeight, $thumbParam['fit'][0], $thumbParam['fit'][1]);
+                            list($newWidth, $newHeight, $offsetX, $offsetY, $cropX, $cropY) = $this->_byFit($originalWidth, $originalHeight, $thumbParam['fit'][0], $thumbParam['fit'][1]);
                         } elseif (isset($thumbParam['fit']) && is_array($thumbParam['fit']) && count($thumbParam['fit']) === 3) {
-                            list($newWidth, $newHeight, $offsetX, $offsetY, $cropX, $cropY) = $this->__byFit($originalWidth, $originalHeight, $thumbParam['fit'][0], $thumbParam['fit'][1], $thumbParam['fit'][2]);
+                            list($newWidth, $newHeight, $offsetX, $offsetY, $cropX, $cropY) = $this->_byFit($originalWidth, $originalHeight, $thumbParam['fit'][0], $thumbParam['fit'][1], $thumbParam['fit'][2]);
                         } elseif (isset($thumbParam['square']) && is_array($thumbParam['square']) && count($thumbParam['square']) === 1) {
-                            list($newWidth, $newHeight, $offsetX, $offsetY, $cropX, $cropY) = $this->__bySquare($originalWidth, $originalHeight, $thumbParam['square'][0]);
+                            list($newWidth, $newHeight, $offsetX, $offsetY, $cropX, $cropY) = $this->_bySquare($originalWidth, $originalHeight, $thumbParam['square'][0]);
                         } elseif (isset($thumbParam['square']) && is_array($thumbParam['square']) && count($thumbParam['square']) === 2) {
-                            list($newWidth, $newHeight, $offsetX, $offsetY, $cropX, $cropY) = $this->__bySquare($originalWidth, $originalHeight, $thumbParam['square'][0], $thumbParam['square'][1]);
+                            list($newWidth, $newHeight, $offsetX, $offsetY, $cropX, $cropY) = $this->_bySquare($originalWidth, $originalHeight, $thumbParam['square'][0], $thumbParam['square'][1]);
                         } else {
                             $newWidth = $originalWidth;
                             $newHeight = $originalHeight;
@@ -464,7 +464,7 @@ class FileBehavior extends Behavior
      * @param integer $newWidth Set new image width
      * @return array New width and height
      */
-    protected function __byWidth($originalWidth, $originalHeight, $newWidth)
+    protected function _byWidth($originalWidth, $originalHeight, $newWidth)
     {
         $newWidth = intval($newWidth);
 
@@ -486,7 +486,7 @@ class FileBehavior extends Behavior
      * @param integer $newHeight Set new image height
      * @return array New width and height
      */
-    protected function __byHeight($originalWidth, $originalHeight, $newHeight)
+    protected function _byHeight($originalWidth, $originalHeight, $newHeight)
     {
         $newHeight = intval($newHeight);
 
@@ -509,15 +509,15 @@ class FileBehavior extends Behavior
      * @param integer $newHeight Set new image min height
      * @return array New width and height
      */
-    protected function __byShorter($originalWidth, $originalHeight, $newWidth, $newHeight)
+    protected function _byShorter($originalWidth, $originalHeight, $newWidth, $newHeight)
     {
         $newWidth = intval($newWidth);
         $newHeight = intval($newHeight);
 
         if ($originalWidth < $originalHeight) {
-            list($newWidth, $newHeight) = $this->__byWidth($originalWidth, $originalHeight, $newWidth);
+            list($newWidth, $newHeight) = $this->_byWidth($originalWidth, $originalHeight, $newWidth);
         } else {
-            list($newWidth, $newHeight) = $this->__byHeight($originalWidth, $originalHeight, $newHeight);
+            list($newWidth, $newHeight) = $this->_byHeight($originalWidth, $originalHeight, $newHeight);
         }
 
         return [$newWidth, $newHeight];
@@ -532,15 +532,15 @@ class FileBehavior extends Behavior
      * @param integer $newHeight Set new image max height
      * @return array New width and height
      */
-    protected function __byLonger($originalWidth, $originalHeight, $newWidth, $newHeight)
+    protected function _byLonger($originalWidth, $originalHeight, $newWidth, $newHeight)
     {
         $newWidth = intval($newWidth);
         $newHeight = intval($newHeight);
 
         if ($originalWidth > $originalHeight) {
-            list($newWidth, $newHeight) = $this->__byWidth($originalWidth, $originalHeight, $newWidth);
+            list($newWidth, $newHeight) = $this->_byWidth($originalWidth, $originalHeight, $newWidth);
         } else {
-            list($newWidth, $newHeight) = $this->__byHeight($originalWidth, $originalHeight, $newHeight);
+            list($newWidth, $newHeight) = $this->_byHeight($originalWidth, $originalHeight, $newHeight);
         }
 
         return [$newWidth, $newHeight];
@@ -556,7 +556,7 @@ class FileBehavior extends Behavior
      * @param boolean $originalKeep Save original shape
      * @return array New width and height and offsets of position with keeping original shape
      */
-    protected function __byFit($originalWidth, $originalHeight, $newWidth, $newHeight, $originalKeep = false)
+    protected function _byFit($originalWidth, $originalHeight, $newWidth, $newHeight, $originalKeep = false)
     {
         $newWidth = intval($newWidth);
         $newHeight = intval($newHeight);
@@ -568,22 +568,22 @@ class FileBehavior extends Behavior
 
         if ($originalKeep === true) {
             if ($originalWidth == $originalHeight) {
-                $newSizes = $this->__byLonger($originalWidth, $originalHeight, min($newWidth, $newHeight), min($newWidth, $newHeight));
+                $newSizes = $this->_byLonger($originalWidth, $originalHeight, min($newWidth, $newHeight), min($newWidth, $newHeight));
             } else {
-                $newSizes = $this->__byLonger($originalWidth, $originalHeight, $newWidth, $newHeight);
+                $newSizes = $this->_byLonger($originalWidth, $originalHeight, $newWidth, $newHeight);
 
                 if ($newWidth < $newSizes[0] || $newHeight < $newSizes[1]) {
-                    $newSizes = $this->__byShorter($originalWidth, $originalHeight, $newWidth, $newHeight);
+                    $newSizes = $this->_byShorter($originalWidth, $originalHeight, $newWidth, $newHeight);
                 }
             }
         } else {
             if ($originalWidth == $originalHeight) {
-                $newSizes = $this->__byShorter($originalWidth, $originalHeight, max($newWidth, $newHeight), max($newWidth, $newHeight));
+                $newSizes = $this->_byShorter($originalWidth, $originalHeight, max($newWidth, $newHeight), max($newWidth, $newHeight));
             } else {
-                $newSizes = $this->__byShorter($originalWidth, $originalHeight, $newWidth, $newHeight);
+                $newSizes = $this->_byShorter($originalWidth, $originalHeight, $newWidth, $newHeight);
 
                 if ($newWidth > $newSizes[0] || $newHeight > $newSizes[1]) {
-                    $newSizes = $this->__byLonger($originalWidth, $originalHeight, $newWidth, $newHeight);
+                    $newSizes = $this->_byLonger($originalWidth, $originalHeight, $newWidth, $newHeight);
                 }
             }
         }
@@ -612,7 +612,7 @@ class FileBehavior extends Behavior
      * @param boolean $originalKeep Save original shape
      * @return array New width and height with coordinates of crop or offsets of position
      */
-    protected function __bySquare($originalWidth, $originalHeight, $newSide, $originalKeep = false)
+    protected function _bySquare($originalWidth, $originalHeight, $newSide, $originalKeep = false)
     {
         $newSide = intval($newSide);
 
@@ -622,7 +622,7 @@ class FileBehavior extends Behavior
         $cropY = 0;
 
         if ($originalKeep === true) {
-            list($newWidth, $newHeight) = $this->__byLonger($originalWidth, $originalHeight, $newSide, $newSide);
+            list($newWidth, $newHeight) = $this->_byLonger($originalWidth, $originalHeight, $newSide, $newSide);
 
             if ($newSide > $newWidth) {
                 $offsetX = ($newSide - $newWidth) / 2;
@@ -632,7 +632,7 @@ class FileBehavior extends Behavior
                 $offsetY = ($newSide - $newHeight) / 2;
             }
         } else {
-            list($newWidth, $newHeight) = $this->__byShorter($originalWidth, $originalHeight, $newSide, $newSide);
+            list($newWidth, $newHeight) = $this->_byShorter($originalWidth, $originalHeight, $newSide, $newSide);
 
             if ($newSide < $newWidth) {
                 $cropX = ($newWidth - $newSide) / 2;
