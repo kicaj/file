@@ -73,8 +73,8 @@ class FileBehavior extends Behavior
                     $data['_' . $fieldName] = $data[$fieldName];
 
                     $this->_files[$fieldName] = $data[$fieldName];
-                    $this->_files[$fieldName]['path'] = $this->prepareDir($fieldOptions['path']);
-                    $this->_files[$fieldName]['name'] = $this->prepareName($data, $fieldName);
+                    $this->_files[$fieldName]['path'] = $this->_prepareDir($fieldOptions['path']);
+                    $this->_files[$fieldName]['name'] = $this->_prepareName($data, $fieldName);
 
                     $data[$fieldName] = $this->_files[$fieldName]['name'];
                 } else {
@@ -105,56 +105,6 @@ class FileBehavior extends Behavior
     public function beforeDelete(Model $model, $cascade = true)
     {
         return $this->deleteFile($model);
-    }
-
-    /**
-     * Generate random name of uploaded file.
-     * If action is for update with not used file then it will be removed.
-     *
-     * @todo Prepare method for working without primary key field
-     * @todo Generate names of files by user method
-     * @param array $data File data
-     * @param string $fieldName Name of file field name
-     * @return string New name of file
-     */
-    public function prepareName($data, $fieldName)
-    {
-        /*if (isset($entity->id)) {
-            $dataField = $entity->findById($model->id);
-
-            if (is_array($dataField) && !empty($dataField) && is_file($this->_files[$fieldName]['path'] . DS . $dataField[$model->alias][$fieldName])) {
-                $filePattern = $this->settings[$model->alias][$fieldName]['path'] . DS . substr($dataField[$model->alias][$fieldName], 0, 14);
-
-                foreach (glob($filePattern . '*') as $fileName) {
-                    // Remove file
-                    @unlink($fileName);
-                }
-            }
-        }*/
-
-        $name = substr(Text::uuid(), -27, 14) . '_default.' . $this->getExtension($this->_files[$fieldName]['name']);
-
-        return $name;
-    }
-
-    /**
-     * Set path to directory for save uploaded files.
-     * If directory isn't exists, will be created with full privileges.
-     *
-     * @param string $dirPath Path to directory
-     * @return string Path to directory
-     */
-    public function prepareDir($dirPath)
-    {
-        $dirPath = WWW_ROOT . str_replace('/', DS, $dirPath);
-
-        if (!is_dir($dirPath) && mb_strlen($dirPath) > 0) {
-            mkdir($dirPath, 0777, true);
-        }
-
-        chmod($dirPath, 0777);
-
-        return $dirPath;
     }
 
     /**
@@ -454,6 +404,56 @@ class FileBehavior extends Behavior
 
                 break;
         }
+    }
+    
+    /**
+     * Generate random name of uploaded file.
+     * If action is for update with not used file then it will be removed.
+     *
+     * @todo Prepare method for working without primary key field
+     * @todo Generate names of files by user method
+     * @param array $data File data
+     * @param string $fieldName Name of file field name
+     * @return string New name of file
+     */
+    protected function _prepareName($data, $fieldName)
+    {
+        /*if (isset($entity->id)) {
+         $dataField = $entity->findById($model->id);
+         
+         if (is_array($dataField) && !empty($dataField) && is_file($this->_files[$fieldName]['path'] . DS . $dataField[$model->alias][$fieldName])) {
+         $filePattern = $this->settings[$model->alias][$fieldName]['path'] . DS . substr($dataField[$model->alias][$fieldName], 0, 14);
+         
+         foreach (glob($filePattern . '*') as $fileName) {
+         // Remove file
+         @unlink($fileName);
+         }
+         }
+         }*/
+        
+        $name = substr(Text::uuid(), -27, 14) . '_default.' . $this->getExtension($this->_files[$fieldName]['name']);
+        
+        return $name;
+    }
+    
+    /**
+     * Set path to directory for save uploaded files.
+     * If directory isn't exists, will be created with full privileges.
+     *
+     * @param string $dirPath Path to directory
+     * @return string Path to directory
+     */
+    protected function _prepareDir($dirPath)
+    {
+        $dirPath = WWW_ROOT . str_replace('/', DS, $dirPath);
+        
+        if (!is_dir($dirPath) && mb_strlen($dirPath) > 0) {
+            mkdir($dirPath, 0777, true);
+        }
+        
+        chmod($dirPath, 0777);
+        
+        return $dirPath;
     }
 
     /**
