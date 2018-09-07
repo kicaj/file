@@ -17,3 +17,10 @@ The recommended way to install composer packages is:
 ```
 composer require kicaj/file dev-master
 ```
+
+## TODOs
+
+[ ] Work with ImageMagick
+- Support for image type:
+  - [ ] WebP
+  - [ ] HEIF/HEIC (now just ImageMagick)
