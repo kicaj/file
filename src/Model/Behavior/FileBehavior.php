@@ -10,9 +10,7 @@ class FileBehavior extends Behavior
 {
 
     /**
-     * Default settings
-     *
-     * @var array
+     * @inheritdoc
      */
     protected $_defaultConfig = [
         'types' => [ // Default allowed types
@@ -39,26 +37,6 @@ class FileBehavior extends Behavior
     ];
 
     /**
-     * Default validations rules
-     *
-     * @var array
-     */
-    protected $_validate = array(
-        'max' => array(
-            'rule' => array('fileSize', '<=', '10M'),
-            'message' => 'Niestety, ale maksymalny rozmiar pliku został przekroczony!'
-        ),
-        'type' => array(
-            'rule' => array('fileType'),
-            'message' => 'Niestety, ale niedozwolony typ pliku!'
-        ),
-        'ext' => array(
-            'rule' => array('fileExtension'),
-            'message' => 'Niestety, ale niedozwolony typ rozszerzenia pliku!'
-        )
-    );
-
-    /**
      * Array of files to upload
      *
      * @var array
@@ -66,20 +44,11 @@ class FileBehavior extends Behavior
     protected $_files = [];
 
     /**
-     * {@inheritdoc}
+     * @inheritdoc
      */
     public function initialize(array $config)
     {
         foreach ($config as $field => $array) {
-            // Set validations rules
-            /*$validation = array();
-
-            if (isset($model->validate[$field])) {
-                $validation = $model->validate[$field];
-            }
-
-            $model->validate[$field] = array_merge($this->_validate, $validation);*/
-
             $this->_config = [];
 
             if (is_array($array)) {
@@ -91,9 +60,9 @@ class FileBehavior extends Behavior
     }
 
     /**
-     * {@inheritdoc}
+     * @inheritdoc
      */
-    public function beforeMarshal(Event $event, $data = array(), $options = array())
+    public function beforeMarshal(Event $event, $data = [], $options = [])
     {
         if (!empty($this->_config[$this->_table->getAlias()])) {
             foreach ($this->_config[$this->_table->getAlias()] as $fieldName => $fieldOptions) {
@@ -119,9 +88,9 @@ class FileBehavior extends Behavior
     }
 
     /**
-     * {@inheritdoc}
+     * @inheritdoc
      */
-    public function afterSave(Event $event, EntityInterface $entity, $options = array())
+    public function afterSave(Event $event, EntityInterface $entity, $options = [])
     {
         //if ($created !== true && empty($this->_files)) {
 
@@ -131,7 +100,7 @@ class FileBehavior extends Behavior
     }
 
     /**
-     * {@inheritdoc}
+     * @inheritdoc
      */
     public function beforeDelete(Model $model, $cascade = true)
     {
@@ -445,43 +414,43 @@ class FileBehavior extends Behavior
     {
         switch (intval($positionValue)) {
             case 1: // Top left
-                return array(0 + $offsetX, 0 + $offsetY);
+                return [$offsetX, $offsetY];
 
                 break;
             case 2: // Top center
-                return array(($newWidth / 2) - ($watermarkWidth / 2), 0 + $offsetY);
+                return [($newWidth / 2) - ($watermarkWidth / 2), 0 + $offsetY];
 
                 break;
             case 3: // Top right
-                return array(($newWidth - $watermarkWidth) - $offsetX, 0 + $offsetY);
+                return [($newWidth - $watermarkWidth) - $offsetX, 0 + $offsetY];
 
                 break;
             case 4: // Middle left
-                return array(0 + $offsetX, ($newHeight / 2) - ($watermarkHeight /2));
+                return [$offsetX, ($newHeight / 2) - ($watermarkHeight / 2)];
 
                 break;
             case 5: // Middle center
-                return array(($newWidth / 2) - ($watermarkWidth / 2), ($newHeight / 2) - ($watermarkHeight /2));
+                return [($newWidth / 2) - ($watermarkWidth / 2), ($newHeight / 2) - ($watermarkHeight / 2)];
 
                 break;
             case 6: // Middle right
-                return array(($newWidth - $watermarkWidth) - $offsetX, ($newHeight / 2) - ($watermarkHeight /2));
+                return [($newWidth - $watermarkWidth) - $offsetX, ($newHeight / 2) - ($watermarkHeight / 2)];
 
                 break;
             case 7: // Bottom left
-                return array(0 + $offsetX, ($newHeight - $watermarkHeight) - $offsetY);
+                return [$offsetX, ($newHeight - $watermarkHeight) - $offsetY];
 
                 break;
             case 8: // Bottom center
-                return array(($newWidth / 2) - ($watermarkWidth / 2), ($newHeight - $watermarkHeight) - $offsetY);
+                return [($newWidth / 2) - ($watermarkWidth / 2), ($newHeight - $watermarkHeight) - $offsetY];
 
                 break;
             case 9: // Bottom right
-                return array(($newWidth - $watermarkWidth) - $offsetX, ($newHeight - $watermarkHeight) - $offsetY);
+                return [($newWidth - $watermarkWidth) - $offsetX, ($newHeight - $watermarkHeight) - $offsetY];
 
                 break;
             default:
-                return array(0 - $offsetX, 0 - $offsetY);
+                return [$offsetX, 0 - $offsetY];
 
                 break;
         }
@@ -506,7 +475,7 @@ class FileBehavior extends Behavior
             $newHeight = intval($newWidth * ($originalHeight / $originalWidth));
         }
 
-        return array($newWidth, $newHeight);
+        return [$newWidth, $newHeight];
     }
 
     /**
@@ -528,7 +497,7 @@ class FileBehavior extends Behavior
             $newWidth = intval($newHeight * ($originalWidth / $originalHeight));
         }
 
-        return array($newWidth, $newHeight);
+        return [$newWidth, $newHeight];
     }
 
     /**
@@ -551,7 +520,7 @@ class FileBehavior extends Behavior
             list($newWidth, $newHeight) = $this->__byHeight($originalWidth, $originalHeight, $newHeight);
         }
 
-        return array($newWidth, $newHeight);
+        return [$newWidth, $newHeight];
     }
 
     /**
@@ -574,7 +543,7 @@ class FileBehavior extends Behavior
             list($newWidth, $newHeight) = $this->__byHeight($originalWidth, $originalHeight, $newHeight);
         }
 
-        return array($newWidth, $newHeight);
+        return [$newWidth, $newHeight];
     }
 
     /**
@@ -631,7 +600,7 @@ class FileBehavior extends Behavior
             $offsetY = ($newHeight - $newSizes[1]) / 2;
         }
 
-        return array($newSizes[0], $newSizes[1], $offsetX, $offsetY, $cropX, $cropY);
+        return [$newSizes[0], $newSizes[1], $offsetX, $offsetY, $cropX, $cropY];
     }
 
     /**
@@ -678,81 +647,6 @@ class FileBehavior extends Behavior
             }
         }
 
-        return array($newWidth, $newHeight, $offsetX, $offsetY, $cropX, $cropY);
-    }
-
-    /**
-     * Validation file when is required
-     *
-     * @param Model $model Reference to model
-     * @param array $valudateValue Array of settings validation
-     * @return boolean Success of validation
-     */
-    public function fileRequired(Model $model, $validateValue)
-    {
-        $validateKeys = array_keys($validateValue);
-        $validateVariable = array_shift($validateValue);
-
-        if ($model->id) {
-            $file = $model->findById($model->id);
-
-            if (!empty($file[$model->alias][$validateKeys[0]]) && file_exists($this->settings[$model->alias][$validateKeys[0]]['path'] . DS . $file[$model->alias][$validateKeys[0]])) {
-                return true;
-            }
-        }
-
-        if (!empty($validateVariable['tmp_name'])) {
-            return true;
-        }
-
-        return false;
-    }
-
-    /**
-     * Validation file type
-     *
-     * @todo Rewrite to use Validation::mimeType();
-     * @param Model $model Reference to model
-     * @param array $valudateValue Array of settings validation
-     * @return boolean Success of validation
-     */
-    public function fileType(Model $model, $validateValue)
-    {
-        $validateKeys = array_keys($validateValue);
-        $validateVariable = array_shift($validateValue);
-
-        if (empty($validateVariable['tmp_name'])) {
-            return true;
-        }
-
-        if (in_array($validateVariable['type'], $this->settings[$model->alias][$validateKeys[0]]['types'])) {
-            return true;
-        }
-
-        return false;
-    }
-
-    /**
-     * Validation file extension
-     *
-     * @todo Rewrite to use Validation::extension();
-     * @param Model $model Reference to model
-     * @param array $valudateValue Array of settings validation
-     * @return boolean Success of validation
-     */
-    public function fileExtension(Model $model, $validateValue)
-    {
-        $validateKeys = array_keys($validateValue);
-        $validateVariable = array_shift($validateValue);
-
-        if (empty($validateVariable['tmp_name'])) {
-            return true;
-        }
-
-        if (in_array($this->getExtension($validateVariable['name']), $this->settings[$model->alias][$validateKeys[0]]['extensions'])) {
-            return true;
-        }
-
-        return false;
+        return [$newWidth, $newHeight, $offsetX, $offsetY, $cropX, $cropY];
     }
 }
