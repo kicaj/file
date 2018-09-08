@@ -20,7 +20,8 @@ class FileBehavior extends Behavior
             'image/pjpg',
             'image/png',
             'image/x-png',
-            'image/gif'
+            'image/gif',
+            'image/webp',
         ],
         'extensions' => [ // Default allowed extensions
             'jpeg',
@@ -28,7 +29,8 @@ class FileBehavior extends Behavior
             'pjpg',
             'pjpeg',
             'png',
-            'gif'
+            'gif',
+            'webp',
         ],
         'path' => 'files',
         'background' => [255, 255, 255, 127],
@@ -185,7 +187,11 @@ class FileBehavior extends Behavior
                     break;
                 case 'png':
                     $sourceImage = imagecreatefrompng($originalFile);
-
+                    
+                    break;
+                case 'webp':
+                    $sourceImage = imagecreatefromwebp($originalFile);
+                    
                     break;
                 default:
                     $sourceImage = null;
@@ -273,7 +279,11 @@ class FileBehavior extends Behavior
                                 break;
                             case 'png':
                                 imagepng($newImage, $thumbFile);
-
+                                
+                                break;
+                            case 'webp':
+                                imagewebp($newImage, $thumbFile);
+                                
                                 break;
                             default:
                                 imagejpeg($newImage, $thumbFile, 100);
