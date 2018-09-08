@@ -21,6 +21,7 @@ composer require kicaj/file dev-master
 ## TODOs
 
 - [ ] Work with ImageMagick
+- [ ] Work with Gmagick
 - Support for image type:
   - [x] WebP
-  - [ ] HEIF/HEIC (now just ImageMagick)
+  - [ ] HEIF/HEIC (not now in GD)
