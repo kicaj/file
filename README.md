@@ -22,5 +22,5 @@ composer require kicaj/file dev-master
 
 - [ ] Work with ImageMagick
 - Support for image type:
-  - [ ] WebP
+  - [x] WebP
   - [ ] HEIF/HEIC (now just ImageMagick)
