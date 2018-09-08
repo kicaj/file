@@ -315,40 +315,6 @@ class FileBehavior extends Behavior
     }
 
     /**
-     * Get file size in bytes
-     *
-     * @param integer $sizeValue File size
-     * @return integer Size of uploaded file
-     */
-    public function getBytes($sizeValue)
-    {
-        $sizeValue = trim($sizeValue);
-
-        if (is_numeric($sizeValue)) {
-            $sizeLetter = 'm';
-        } else {
-            $sizeLetter = strtolower($sizeValue[strlen($sizeValue)-1]);
-        }
-
-        switch ($sizeLetter) {
-            case 'g':
-                $sizeValue *= 1073741824;
-
-                break;
-            case 'm':
-                $sizeValue *= 1048576;
-
-                break;
-            case 'k':
-                $sizeValue *= 1024;
-
-                break;
-        }
-
-        return intval($sizeValue);
-    }
-
-    /**
      * Get position of watermark image
      *
      * @param integer $newWidth New width of uploaded image
