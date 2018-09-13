@@ -110,18 +110,17 @@ class FileBehavior extends Behavior
     }
 
     /**
-     * Copy and upload file.
-     * If field has configurations for thumns, then create them.
+     * Copy file to destination and if field has configurations for thumbs, then create them.
      *
      * @param EntityInterface $entity Entity
      */
     public function prepareFile(EntityInterface $entity)
     {
         foreach ($this->_files as $fieldName => $fieldOptions) {
-            // Name of original file
+            // Path to default file
             $fileName = $fieldOptions['path'] . DS . $this->_files[$fieldName]['name'];
 
-            if (move_uploaded_file($this->_files[$fieldName]['tmp_name'], $fileName)) {
+            if (move_uploaded_file($this->_files[$fieldName]['tmp_name'], $fileName) || rename($this->_files[$fieldName]['tmp_name'], $fileName)) {
                 if (isset($this->_config[$this->_table->getAlias()][$fieldName]['thumbs'])) {
                     $this->prepareThumbs($fileName, $this->_config[$this->_table->getAlias()][$fieldName]);
                 }
@@ -187,11 +186,11 @@ class FileBehavior extends Behavior
                     break;
                 case 'png':
                     $sourceImage = imagecreatefrompng($originalFile);
-                    
+
                     break;
                 case 'webp':
                     $sourceImage = imagecreatefromwebp($originalFile);
-                    
+
                     break;
                 default:
                     $sourceImage = null;
@@ -279,11 +278,11 @@ class FileBehavior extends Behavior
                                 break;
                             case 'png':
                                 imagepng($newImage, $thumbFile);
-                                
+
                                 break;
                             case 'webp':
                                 imagewebp($newImage, $thumbFile);
-                                
+
                                 break;
                             default:
                                 imagejpeg($newImage, $thumbFile, 100);
@@ -381,7 +380,7 @@ class FileBehavior extends Behavior
                 break;
         }
     }
-    
+
     /**
      * Generate random name of uploaded file.
      * If action is for update with not used file then it will be removed.
@@ -396,22 +395,22 @@ class FileBehavior extends Behavior
     {
         /*if (isset($entity->id)) {
          $dataField = $entity->findById($model->id);
-         
+
          if (is_array($dataField) && !empty($dataField) && is_file($this->_files[$fieldName]['path'] . DS . $dataField[$model->alias][$fieldName])) {
          $filePattern = $this->settings[$model->alias][$fieldName]['path'] . DS . substr($dataField[$model->alias][$fieldName], 0, 14);
-         
+
          foreach (glob($filePattern . '*') as $fileName) {
          // Remove file
          @unlink($fileName);
          }
          }
          }*/
-        
+
         $name = substr(Text::uuid(), -27, 14) . '_default.' . $this->getExtension($this->_files[$fieldName]['name']);
-        
+
         return $name;
     }
-    
+
     /**
      * Set path to directory for save uploaded files.
      * If directory isn't exists, will be created with full privileges.
@@ -422,13 +421,13 @@ class FileBehavior extends Behavior
     protected function _prepareDir($dirPath)
     {
         $dirPath = WWW_ROOT . str_replace('/', DS, $dirPath);
-        
+
         if (!is_dir($dirPath) && mb_strlen($dirPath) > 0) {
             mkdir($dirPath, 0777, true);
         }
-        
+
         chmod($dirPath, 0777);
-        
+
         return $dirPath;
     }
 
