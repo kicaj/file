@@ -66,8 +66,8 @@ class FileBehavior extends Behavior
      */
     public function beforeMarshal(Event $event, $data = [], $options = [])
     {
-        if (!empty($this->_config[$this->_table->getAlias()])) {
-            foreach ($this->_config[$this->_table->getAlias()] as $fieldName => $fieldOptions) {
+        if (!empty($fieldList = $this->_config[$this->_table->getAlias()])) {
+            foreach ($fieldList as $fieldName => $fieldOptions) {
                 // Check for temporary file
                 if (isset($data[$fieldName]) && !empty($data[$fieldName]['name']) && file_exists($data[$fieldName]['tmp_name'])) {
                     // Create archive file data with suffix on original field name
