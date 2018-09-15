@@ -393,20 +393,7 @@ class FileBehavior extends Behavior
      */
     protected function _prepareName($data, $fieldName)
     {
-        /*if (isset($entity->id)) {
-         $dataField = $entity->findById($model->id);
-
-         if (is_array($dataField) && !empty($dataField) && is_file($this->_files[$fieldName]['path'] . DS . $dataField[$model->alias][$fieldName])) {
-         $filePattern = $this->settings[$model->alias][$fieldName]['path'] . DS . substr($dataField[$model->alias][$fieldName], 0, 14);
-
-         foreach (glob($filePattern . '*') as $fileName) {
-         // Remove file
-         @unlink($fileName);
-         }
-         }
-         }*/
-
-        $name = substr(Text::uuid(), -27, 14) . '_default.' . $this->getExtension($this->_files[$fieldName]['name']);
+        $name = Text::uuid() . '_default.' . $this->getExtension($this->_files[$fieldName]['name']);
 
         return $name;
     }
