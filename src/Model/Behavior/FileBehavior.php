@@ -375,7 +375,7 @@ class FileBehavior extends Behavior
 
                 break;
             default:
-                return [$offsetX, 0 - $offsetY];
+                return [$offsetX, $offsetY];
 
                 break;
         }
