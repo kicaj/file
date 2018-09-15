@@ -6,7 +6,7 @@
 
 It is developed for CakePHP 3.x.
 
-If would like using in Cake 2.x check branch named `2.x`, but it is no longer supported
+If would like using in Cake 2.x check branch named `2.x`, but it is no longer supported.
 
 ## Installation
 
