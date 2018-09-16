@@ -21,7 +21,7 @@ composer require kicaj/file dev-master
 ## TODOs
 
 - [ ] Add Exceptions
-- [ ] Work with ImageMagick
+- [x] Work with ImageMagick
 - [ ] Work with Gmagick
 - Support for image type:
   - [x] WebP
