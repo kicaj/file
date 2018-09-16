@@ -20,7 +20,7 @@ composer require kicaj/file dev-master
 
 ## TODOs
 
-- [ ] Add Exceptions
+- [x] Add light Exceptions
 - [x] Work with ImageMagick
 - [ ] Work with Gmagick
 - Support for image type:
