@@ -6,6 +6,7 @@ use Cake\Utility\Text;
 use Cake\Event\Event;
 use Cake\Datasource\EntityInterface;
 use File\Exception\LibraryException;
+use File\Exception\ThumbsException;
 
 class FileBehavior extends Behavior
 {
@@ -108,9 +109,9 @@ class FileBehavior extends Behavior
     /**
      * @inheritdoc
      */
-    public function beforeDelete(Model $model, $cascade = true)
+    public function beforeDelete(Event $event, EntityInterface $entity)
     {
-        return $this->deleteFile($model);
+        return $this->deleteFile($event);
     }
 
     /**
