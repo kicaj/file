@@ -136,10 +136,10 @@ class FileBehavior extends Behavior
     /**
      * Delete file with created thumbs
      *
-     * @param Model $model Reference to model
+     * @param Event $event Reference to event
      * @return boolean True if is success
      */
-    public function deleteFile(Model $model)
+    public function deleteFile(Event $event)
     {
         // Get field list of model schema
         $modelSchema = $model->schema();
