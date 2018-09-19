@@ -186,12 +186,6 @@ class FileBehavior extends Behavior
                 // Get image resource
                 case 'gd':
                     switch ($fileExtension) {
-                        case 'jpg':
-                            ini_set('gd.jpeg_ignore_warning', 1);
-
-                            $sourceImage = imagecreatefromjpeg($originalFile);
-
-                            break;
                         case 'gif':
                             $sourceImage = imagecreatefromgif($originalFile);
 
@@ -203,6 +197,12 @@ class FileBehavior extends Behavior
                         case 'webp':
                             $sourceImage = imagecreatefromwebp($originalFile);
 
+                            break;
+                        default:
+                            ini_set('gd.jpeg_ignore_warning', 1);
+                            
+                            $sourceImage = imagecreatefromjpeg($originalFile);
+                            
                             break;
                     }
 
