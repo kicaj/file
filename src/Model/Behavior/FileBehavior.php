@@ -265,7 +265,7 @@ class FileBehavior extends Behavior
 
                             imagecopyresampled($newImage, $sourceImage, 0, 0, 0, 0, $newWidth, $newHeight, $originalWidth, $originalHeight);
 
-                            if (isset($thumbParam['square']) && is_array($thumbParam['square']) || isset($thumbParam['fit']) && is_array($thumbParam['fit'])) {
+                            if ((isset($thumbParam['square']) && is_array($thumbParam['square'])) || (isset($thumbParam['fit']) && is_array($thumbParam['fit']))) {
                                 $fitImage = imagecreatetruecolor($newWidth + (2 * $offsetX) - (2 * $cropX), $newHeight + (2 * $offsetY) - (2 * $cropY));
 
                                 if (is_array($settingParams['background'])) {
@@ -320,7 +320,7 @@ class FileBehavior extends Behavior
                             $newImage->setimagebackgroundcolor('transparent');
                             $newImage->extentimage($newWidth + (2 * $offsetX), $newHeight + (2 * $offsetY), -$offsetX, -$offsetY);
 
-                            if (isset($thumbParam['square']) && is_array($thumbParam['square']) || isset($thumbParam['fit']) && is_array($thumbParam['fit'])) {
+                            if ((isset($thumbParam['square']) && is_array($thumbParam['square'])) || (isset($thumbParam['fit']) && is_array($thumbParam['fit']))) {
                                 $newImage->cropimage($newWidth + (2 * $offsetX) - (2 * $cropX), $newHeight + (2 * $offsetY) - (2 * $cropY), $cropX, $cropY);
                             }
 
