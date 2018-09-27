@@ -57,11 +57,11 @@ class FileBehavior extends Behavior
             $this->_config = [];
 
             if (is_array($fieldOptions)) {
-                $this->_config[$this->_table->getAlias()][$field] = array_merge($this->_defaultConfig, $fieldOptions);
+                $this->_config[$this->getTable()->getAlias()][$field] = array_merge($this->_defaultConfig, $fieldOptions);
             } else {
                 $field = $fieldOptions;
 
-                $this->_config[$this->_table->getAlias()][$field] = $this->_defaultConfig;
+                $this->_config[$this->getTable()->getAlias()][$field] = $this->_defaultConfig;
             }
         }
     }
@@ -71,7 +71,7 @@ class FileBehavior extends Behavior
      */
     public function beforeMarshal(Event $event, $data = [], $options = [])
     {
-        if (!empty($config = $this->_config[$this->_table->getAlias()])) {
+        if (!empty($config = $this->_config[$this->getTable()->getAlias()])) {
             foreach ($config as $field => $fieldOptions) {
                 // Check for temporary file
                 if (isset($data[$field]) && !empty($data[$field]['name']) && file_exists($data[$field]['tmp_name'])) {
@@ -126,8 +126,8 @@ class FileBehavior extends Behavior
             $fileName = $fieldOptions['path'] . DS . $this->_files[$fieldName]['name'];
 
             if (move_uploaded_file($this->_files[$fieldName]['tmp_name'], $fileName) || rename($this->_files[$fieldName]['tmp_name'], $fileName)) {
-                if (isset($this->_config[$this->_table->getAlias()][$fieldName]['thumbs'])) {
-                    $this->prepareThumbs($fileName, $this->_config[$this->_table->getAlias()][$fieldName]);
+                if (isset($this->_config[$this->getTable()->getAlias()][$fieldName]['thumbs'])) {
+                    $this->prepareThumbs($fileName, $this->_config[$this->getTable()->getAlias()][$fieldName]);
                 }
             }
         }
