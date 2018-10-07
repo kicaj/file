@@ -53,9 +53,9 @@ class FileBehavior extends Behavior
      */
     public function initialize(array $config)
     {
-        foreach ($config as $field => $fieldOptions) {
-            $this->_config = [];
+        $this->_config = [];
 
+        foreach ($config as $field => $fieldOptions) {
             if (is_array($fieldOptions)) {
                 $this->_config[$this->getTable()->getAlias()][$field] = array_merge($this->_defaultConfig, $fieldOptions);
             } else {
@@ -99,11 +99,7 @@ class FileBehavior extends Behavior
      */
     public function afterSave(Event $event, EntityInterface $entity, $options = [])
     {
-        //if ($created !== true && empty($this->_files)) {
-
-        //} else {
         $this->prepareFile($entity);
-        //}
     }
 
     /**
@@ -115,7 +111,7 @@ class FileBehavior extends Behavior
     }
 
     /**
-     * Copy file to destination and if field has configurations for thumbs, then create them.
+     * Copy file to destination and if field (image) has configurations for thumbs, then create them.
      *
      * @param EntityInterface $entity Entity
      */
@@ -125,8 +121,8 @@ class FileBehavior extends Behavior
             // Path to default file
             $fileName = $fieldOptions['path'] . DS . $this->_files[$fieldName]['name'];
 
-            if (move_uploaded_file($this->_files[$fieldName]['tmp_name'], $fileName) || rename($this->_files[$fieldName]['tmp_name'], $fileName)) {
-                if (isset($this->_config[$this->getTable()->getAlias()][$fieldName]['thumbs'])) {
+            if (move_uploaded_file($this->_files[$fieldName]['tmp_name'], $fileName) || (file_exists($this->_files[$fieldName]['tmp_name']) && rename($this->_files[$fieldName]['tmp_name'], $fileName))) {
+                if (mb_strpos($this->_files[$fieldName]['type'], 'image/') !== false && in_array(mb_strtolower($this->_files[$fieldName]['type']), $this->_config[$this->getTable()->getAlias()][$fieldName]['types'])) {
                     $this->prepareThumbs($fileName, $this->_config[$this->getTable()->getAlias()][$fieldName]);
                 }
             }
@@ -200,9 +196,9 @@ class FileBehavior extends Behavior
                             break;
                         default:
                             ini_set('gd.jpeg_ignore_warning', 1);
-                            
+
                             $sourceImage = imagecreatefromjpeg($originalFile);
-                            
+
                             break;
                     }
 
@@ -372,9 +368,7 @@ class FileBehavior extends Behavior
      */
     public function getExtension($originalName)
     {
-        $fileName = strtolower($originalName);
-        $fileParts = explode('.', $fileName);
-        $fileExtension = end($fileParts);
+        $fileExtension = pathinfo(mb_strtolower($originalName), PATHINFO_EXTENSION);
 
         switch ($fileExtension) {
             case 'jpg':
