@@ -122,7 +122,7 @@ class FileBehavior extends Behavior
             $fileName = $fieldOptions['path'] . DS . $this->_files[$fieldName]['name'];
 
             if (move_uploaded_file($this->_files[$fieldName]['tmp_name'], $fileName) || (file_exists($this->_files[$fieldName]['tmp_name']) && rename($this->_files[$fieldName]['tmp_name'], $fileName))) {
-                if (mb_strpos($this->_files[$fieldName]['type'], 'image/') !== false && in_array(mb_strtolower($this->_files[$fieldName]['type']), $this->_config[$this->getTable()->getAlias()][$fieldName]['types'])) {
+                if (isset($this->_files[$fieldName]['type']) && mb_strpos($this->_files[$fieldName]['type'], 'image/') !== false && in_array(mb_strtolower($this->_files[$fieldName]['type']), $this->_config[$this->getTable()->getAlias()][$fieldName]['types'])) {
                     $this->prepareThumbs($fileName, $this->_config[$this->getTable()->getAlias()][$fieldName]);
                 }
             }
