@@ -5,8 +5,9 @@ use Cake\Core\Exception\Exception;
 
 class ThumbsException extends Exception
 {
+    
     /**
-     * @inheritdoc
+     * {@inheritDoc}
      */
     public function __construct($message, $code = 500, $previous = null)
     {

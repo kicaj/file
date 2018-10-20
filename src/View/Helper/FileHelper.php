@@ -7,7 +7,7 @@ class FileHelper extends Helper
 {
 
     /**
-     * {@inheritdoc}
+     * {@inheritDoc}
      */
     public $helpers = [
         'Html',
@@ -20,7 +20,7 @@ class FileHelper extends Helper
      * @param array $options Array of HTML attributes. See above for special options.
      * @param string $thumb Name of thumb
      * @return string completed img tag
-     * @link https://book.cakephp.org/3.0/en/views/helpers/html.html#linking-to-images
+     * @see https://book.cakephp.org/3.0/en/views/helpers/html.html#linking-to-images
      */
     public function thumb($path, $options = [], $thumb = 'default')
     {

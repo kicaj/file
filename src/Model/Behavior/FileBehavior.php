@@ -12,7 +12,7 @@ class FileBehavior extends Behavior
 {
 
     /**
-     * @inheritdoc
+     * {@inheritDoc}
      */
     protected $_defaultConfig = [
         'library' => 'gd',
@@ -49,7 +49,7 @@ class FileBehavior extends Behavior
     protected $_files = [];
 
     /**
-     * @inheritdoc
+     * {@inheritDoc}
      */
     public function initialize(array $config)
     {
@@ -67,7 +67,7 @@ class FileBehavior extends Behavior
     }
 
     /**
-     * @inheritdoc
+     * {@inheritDoc}
      */
     public function beforeMarshal(Event $event, $data = [], $options = [])
     {
@@ -95,7 +95,7 @@ class FileBehavior extends Behavior
     }
 
     /**
-     * @inheritdoc
+     * {@inheritDoc}
      */
     public function afterSave(Event $event, EntityInterface $entity, $options = [])
     {
@@ -103,7 +103,7 @@ class FileBehavior extends Behavior
     }
 
     /**
-     * @inheritdoc
+     * {@inheritDoc}
      */
     public function beforeDelete(Event $event, EntityInterface $entity)
     {
