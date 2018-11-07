@@ -26,3 +26,4 @@ composer require kicaj/file dev-master
 - Support for image type:
   - [x] WebP
   - [ ] HEIF/HEIC (not now in GD)
+- Add command to work with many files
