@@ -25,3 +25,4 @@ composer require kicaj/file
   - [x] WebP
   - [ ] HEIF/HEIC (not now in GD)
 - [ ] Add command to work with many files
+- [ ] Add support to correct orientation by EXIF (https://stackoverflow.com/questions/7489742/php-read-exif-data-and-adjust-orientation)
