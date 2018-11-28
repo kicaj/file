@@ -186,11 +186,11 @@ class FileBehavior extends Behavior
                     switch ($fileExtension) {
                         case 'bmp':
                             $sourceImage = imagecreatefrombmp($originalFile);
-                            
+
                             break;
                         case 'gif':
                             $sourceImage = imagecreatefromgif($originalFile);
-                            
+
                             break;
                         case 'png':
                             $sourceImage = imagecreatefrompng($originalFile);
