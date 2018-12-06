@@ -17,24 +17,22 @@ class FileBehavior extends Behavior
     protected $_defaultConfig = [
         'library' => 'gd',
         'types' => [ // Default allowed types
-            'image/bmp',
-            'image/gif',
             'image/jpeg',
             'image/jpg',
             'image/pjpeg',
             'image/pjpg',
             'image/png',
             'image/x-png',
+            'image/gif',
             'image/webp',
         ],
         'extensions' => [ // Default allowed extensions
-            'bmp',
-            'gif',
             'jpeg',
             'jpg',
             'pjpg',
             'pjpeg',
             'png',
+            'gif',
             'webp',
         ],
         'path' => 'files',
@@ -75,15 +73,27 @@ class FileBehavior extends Behavior
     {
         if (!empty($config = $this->_config[$this->getTable()->getAlias()])) {
             foreach ($config as $field => $fieldOptions) {
-                // Check for temporary file
-                if (isset($data[$field]) && !empty($data[$field]['name']) && file_exists($data[$field]['tmp_name'])) {
+                if (is_numeric(key($data[$field]))) {
+                    foreach ($data[$field] as $r => $fileMuptlipe) {
+                        // Create archive file data with suffix on original field name
+                        // @todo Create only when field name is used in database
+                        $data['_' . $r . '_' . $field] = $data[$field][$r];
+
+                        $this->_files[$r . '_' . $field] = $data[$field][$r];
+                        $this->_files[$r . '_' . $field]['path'] = $this->_prepareDir($fieldOptions['path']);
+                        $this->_files[$r . '_' . $field]['name'] = $this->_prepareName($r . '_' . $field);
+
+                        $data[$r . '_' . $field] = $this->_files[$r . '_' . $field]['name'];
+                    }
+                } elseif (isset($data[$field]) && !empty($data[$field]['name']) && file_exists($data[$field]['tmp_name'])) {
                     // Create archive file data with suffix on original field name
                     // @todo Create only when field name is used in database
+                    // @todo Duplicate code
                     $data['_' . $field] = $data[$field];
 
                     $this->_files[$field] = $data[$field];
                     $this->_files[$field]['path'] = $this->_prepareDir($fieldOptions['path']);
-                    $this->_files[$field]['name'] = $this->_prepareName($data, $field);
+                    $this->_files[$field]['name'] = $this->_prepareName($field);
 
                     $data[$field] = $this->_files[$field]['name'];
                 } else {
@@ -123,9 +133,15 @@ class FileBehavior extends Behavior
             // Path to default file
             $fileName = $fieldOptions['path'] . DS . $this->_files[$fieldName]['name'];
 
-            if (move_uploaded_file($this->_files[$fieldName]['tmp_name'], $fileName) || (file_exists($this->_files[$fieldName]['tmp_name']) && rename($this->_files[$fieldName]['tmp_name'], $fileName))) {
-                if (isset($this->_files[$fieldName]['type']) && mb_strpos($this->_files[$fieldName]['type'], 'image/') !== false && in_array(mb_strtolower($this->_files[$fieldName]['type']), $this->_config[$this->getTable()->getAlias()][$fieldName]['types'])) {
-                    $this->prepareThumbs($fileName, $this->_config[$this->getTable()->getAlias()][$fieldName]);
+            if (move_uploaded_file($fieldOptions['tmp_name'], $fileName) || (file_exists($fieldOptions['tmp_name']) && rename($fieldOptions['tmp_name'], $fileName))) {
+                if (preg_match('/^[0-9]+_/', $fieldName, $fieldMatches)) {
+                    $fieldName = preg_replace('/^' . $fieldMatches[0] . '/', '', $fieldName);
+                }
+
+                $fileTypes = $this->_config[$this->getTable()->getAlias()][$fieldName];
+
+                if (isset($fieldOptions['type']) && mb_strpos($fieldOptions['type'], 'image/') !== false && in_array(mb_strtolower($fieldOptions['type']), $fileTypes['types'])) {
+                    $this->prepareThumbs($fileName, $fileTypes);
                 }
             }
         }
@@ -184,10 +200,6 @@ class FileBehavior extends Behavior
                 // Get image resource
                 case 'gd':
                     switch ($fileExtension) {
-                        case 'bmp':
-                            $sourceImage = imagecreatefrombmp($originalFile);
-
-                            break;
                         case 'gif':
                             $sourceImage = imagecreatefromgif($originalFile);
 
@@ -296,13 +308,9 @@ class FileBehavior extends Behavior
 
                             // Set resource file type
                             switch ($fileExtension) {
-                                case 'bmp':
-                                    imagebmp($newImage, $thumbFile);
-                                    
-                                    break;
                                 case 'gif':
                                     imagegif($newImage, $thumbFile);
-                                    
+
                                     break;
                                 case 'png':
                                     imagepng($newImage, $thumbFile);
@@ -340,8 +348,25 @@ class FileBehavior extends Behavior
                                 $newImage->compositeimage($watermarkImage, \Imagick::COMPOSITE_OVER, $watermarkPositionX, $watermarkPositionY);
                             }
 
-                            // Set resource file type
-                            $newImage->setImageFormat($fileExtension);
+                            // Set object file type
+                            switch ($fileExtension) {
+                                case 'gif':
+                                    $newImage->setImageFormat('gif');
+
+                                    break;
+                                case 'png':
+                                    $newImage->setImageFormat('png');
+
+                                    break;
+                                case 'webp':
+                                    $newImage->setImageFormat('webp');
+
+                                    break;
+                                default:
+                                    $newImage->setImageFormat('jpg');
+
+                                    break;
+                            }
 
                             $newImage->writeimage($thumbFile);
                             $newImage->clear();
@@ -443,15 +468,12 @@ class FileBehavior extends Behavior
      *
      * @todo Prepare method for working without primary key field
      * @todo Generate names of files by user method
-     * @param array $data File data
-     * @param string $fieldName Name of file field name
+     * @param string $fieldName Name of file field
      * @return string New name of file
      */
-    protected function _prepareName($data, $fieldName)
+    protected function _prepareName($fieldName)
     {
-        $name = Text::uuid() . '_default.' . $this->getExtension($this->_files[$fieldName]['name']);
-
-        return $name;
+        return Text::uuid() . '_default.' . $this->getExtension($this->_files[$fieldName]['name']);
     }
 
     /**
