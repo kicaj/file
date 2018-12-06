@@ -16,9 +16,9 @@ class FileBehavior extends Behavior
      */
     protected $_defaultConfig = [
         'library' => 'gd',
-    	'types' => [ // Default allowed types
-    		'image/bmp',
-    		'image/gif',
+        'types' => [ // Default allowed types
+            'image/bmp',
+            'image/gif',
             'image/jpeg',
             'image/jpg',
             'image/pjpeg',
@@ -27,9 +27,9 @@ class FileBehavior extends Behavior
             'image/x-png',
             'image/webp',
         ],
-    	'extensions' => [ // Default allowed extensions 
-    		'bmp',
-    		'gif',
+        'extensions' => [ // Default allowed extensions 
+            'bmp',
+            'gif',
             'jpeg',
             'jpg',
             'pjpg',
@@ -201,11 +201,11 @@ class FileBehavior extends Behavior
             switch ($settingParams['library']) {
                 // Get image resource
                 case 'gd':
-                	switch ($fileExtension) {
-                		case 'bmp':
-                			$sourceImage = imagecreatefrombmp($originalFile);
-                			
-                			break;
+                    switch ($fileExtension) {
+                        case 'bmp':
+                            $sourceImage = imagecreatefrombmp($originalFile);
+                            
+                            break;
                         case 'gif':
                             $sourceImage = imagecreatefromgif($originalFile);
 
@@ -314,14 +314,14 @@ class FileBehavior extends Behavior
 
                             // Set resource file type
                             switch ($fileExtension) {
-                            	case 'bmp':
-                            		imagebmp($newImage, $thumbFile);
-                            		
-                            		break;
-                            	case 'gif':
-                            		imagegif($newImage, $thumbFile);
-                            		
-                            		break;
+                                case 'bmp':
+                                    imagebmp($newImage, $thumbFile);
+                                    
+                                    break;
+                                case 'gif':
+                                    imagegif($newImage, $thumbFile);
+                                    
+                                    break;
                                 case 'png':
                                     imagepng($newImage, $thumbFile);
 
