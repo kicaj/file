@@ -16,23 +16,25 @@ class FileBehavior extends Behavior
      */
     protected $_defaultConfig = [
         'library' => 'gd',
-        'types' => [ // Default allowed types
+    	'types' => [ // Default allowed types
+    		'image/bmp',
+    		'image/gif',
             'image/jpeg',
             'image/jpg',
             'image/pjpeg',
             'image/pjpg',
             'image/png',
             'image/x-png',
-            'image/gif',
             'image/webp',
         ],
-        'extensions' => [ // Default allowed extensions
+    	'extensions' => [ // Default allowed extensions 
+    		'bmp',
+    		'gif',
             'jpeg',
             'jpg',
             'pjpg',
             'pjpeg',
             'png',
-            'gif',
             'webp',
         ],
         'path' => 'files',
@@ -199,7 +201,11 @@ class FileBehavior extends Behavior
             switch ($settingParams['library']) {
                 // Get image resource
                 case 'gd':
-                    switch ($fileExtension) {
+                	switch ($fileExtension) {
+                		case 'bmp':
+                			$sourceImage = imagecreatefrombmp($originalFile);
+                			
+                			break;
                         case 'gif':
                             $sourceImage = imagecreatefromgif($originalFile);
 
@@ -308,10 +314,14 @@ class FileBehavior extends Behavior
 
                             // Set resource file type
                             switch ($fileExtension) {
-                                case 'gif':
-                                    imagegif($newImage, $thumbFile);
-
-                                    break;
+                            	case 'bmp':
+                            		imagebmp($newImage, $thumbFile);
+                            		
+                            		break;
+                            	case 'gif':
+                            		imagegif($newImage, $thumbFile);
+                            		
+                            		break;
                                 case 'png':
                                     imagepng($newImage, $thumbFile);
 
@@ -349,24 +359,7 @@ class FileBehavior extends Behavior
                             }
 
                             // Set object file type
-                            switch ($fileExtension) {
-                                case 'gif':
-                                    $newImage->setImageFormat('gif');
-
-                                    break;
-                                case 'png':
-                                    $newImage->setImageFormat('png');
-
-                                    break;
-                                case 'webp':
-                                    $newImage->setImageFormat('webp');
-
-                                    break;
-                                default:
-                                    $newImage->setImageFormat('jpg');
-
-                                    break;
-                            }
+                            $newImage->setImageFormat($fileExtension);
 
                             $newImage->writeimage($thumbFile);
                             $newImage->clear();
