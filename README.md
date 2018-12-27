@@ -21,7 +21,8 @@ composer require kicaj/file
 - [x] Add light Exceptions
 - [x] Work with ImageMagick
 - [ ] Work with Gmagick
-- [x] Support for WEBP image type
+- [x] Add support to WEBP image type
+- [ ] Add support to own method to generate names
 - [ ] Add command to work with many files
 - [ ] Add support to EXIF
 - [ ] Add support to correct orientation by EXIF (https://stackoverflow.com/questions/7489742/php-read-exif-data-and-adjust-orientation)
