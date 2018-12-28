@@ -16,6 +16,28 @@ The recommended way to install composer packages is:
 composer require kicaj/file
 ```
 
+## Setup
+
+Add file type input in Your view:
+
+```
+echo $this->Form->control('file', [
+    'type' => 'file',
+]);
+```
+
+You should also add `'type' => 'file'` in Your creating form method.
+
+Note: If You want use multiple file input (from HTML5), just replace name of input field from `file` to `file[]` and add to options attribute `multiple`. 
+
+Next, load behavior in Your table on `initialize` method, like below:
+
+```
+$this->addBehavior('File.File', [
+    'file',
+]);
+```
+
 ## TODOs
 
 - [x] Add light Exceptions
@@ -23,6 +45,7 @@ composer require kicaj/file
 - [ ] Work with Gmagick
 - [x] Add support to WEBP image type
 - [ ] Add support to own method to generate names
-- [ ] Add command to work with many files
+- [x] Add support to work with many files
+- [] Add command to work with files
 - [ ] Add support to EXIF
 - [ ] Add support to correct orientation by EXIF (https://stackoverflow.com/questions/7489742/php-read-exif-data-and-adjust-orientation)
