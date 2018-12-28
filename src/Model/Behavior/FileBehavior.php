@@ -27,7 +27,7 @@ class FileBehavior extends Behavior
             'image/x-png',
             'image/webp',
         ],
-        'extensions' => [ // Default allowed extensions 
+        'extensions' => [ // Default allowed extensions
             'bmp',
             'gif',
             'jpeg',
@@ -73,35 +73,37 @@ class FileBehavior extends Behavior
      */
     public function beforeMarshal(Event $event, $data = [], $options = [])
     {
-        if (!empty($config = $this->_config[$this->getTable()->getAlias()])) {
+        if (!empty($config = $this->getConfig($this->getTable()->getAlias()))) {
             foreach ($config as $field => $fieldOptions) {
-                if (is_numeric(key($data[$field]))) {
-                    foreach ($data[$field] as $r => $fileMuptlipe) {
-                        // Create archive file data with suffix on original field name
-                        // @todo Create only when field name is used in database
-                        $data['_' . $r . '_' . $field] = $data[$field][$r];
-
-                        $this->_files[$r . '_' . $field] = $data[$field][$r];
-                        $this->_files[$r . '_' . $field]['path'] = $this->_prepareDir($fieldOptions['path']);
-                        $this->_files[$r . '_' . $field]['name'] = $this->_prepareName($r . '_' . $field);
-
-                        $data[$r . '_' . $field] = $this->_files[$r . '_' . $field]['name'];
-                    }
-                } elseif (isset($data[$field]) && !empty($data[$field]['name']) && file_exists($data[$field]['tmp_name'])) {
-                    // Create archive file data with suffix on original field name
-                    // @todo Create only when field name is used in database
-                    // @todo Duplicate code
+                if (array_key_exists($field, $data)) {
+                    // Save file array to suffixed field
                     $data['_' . $field] = $data[$field];
 
-                    $this->_files[$field] = $data[$field];
-                    $this->_files[$field]['path'] = $this->_prepareDir($fieldOptions['path']);
-                    $this->_files[$field]['name'] = $this->_prepareName($field);
+                    // Detect multiple files by array keys
+                    if (is_numeric(key($data[$field]))) {
+                        foreach (array_keys($data[$field]) as $key) {
+                            if (!empty($data[$field][$key]['tmp_name'])) {
+                                $this->_files[$field . '_' . $key] = array_merge($fieldOptions, [
+                                    'name' => $this->_prepareName($data[$field][$key]['name']),
+                                    'source' => $data[$field][$key]['tmp_name'],
+                                ]);
 
-                    $data[$field] = $this->_files[$field]['name'];
-                } else {
-                    if (isset($data[$field]) && is_array($data[$field])) {
-                        // Delete file array from data when is not attached
-                        unset($data[$field]);
+                                $data[$field][$key] = $this->_files[$field . '_' . $key]['name'];
+                            } else {
+                                unset($data[$field][$key]);
+                            }
+                        }
+                    } else {
+                        if (!empty($data[$field]['tmp_name'])) {
+                            $this->_files[$field] = array_merge($fieldOptions, [
+                                'name' => $this->_prepareName($data[$field]['name']),
+                                'source' => $data[$field]['tmp_name'],
+                            ]);
+
+                            $data[$field] = $this->_files[$field]['name'];
+                        } else {
+                            unset($data[$field]);
+                        }
                     }
                 }
             }
@@ -113,7 +115,7 @@ class FileBehavior extends Behavior
      */
     public function afterSave(Event $event, EntityInterface $entity, $options = [])
     {
-        $this->prepareFile($entity);
+        $this->_prepareFile($entity);
     }
 
     /**
@@ -125,25 +127,29 @@ class FileBehavior extends Behavior
     }
 
     /**
-     * Copy file to destination and if field (image) has configurations for thumbs, then create them.
+     * Copy source file to destination and if field (image) has configurations for thumbs, then create them.
      *
      * @param EntityInterface $entity Entity
      */
-    public function prepareFile(EntityInterface $entity)
+    protected function _prepareFile(EntityInterface $entity)
     {
-        foreach ($this->_files as $fieldName => $fieldOptions) {
-            // Path to default file
-            $fileName = $fieldOptions['path'] . DS . $this->_files[$fieldName]['name'];
+        foreach ($this->_files as $field => $fieldOptions) {
+            if (!is_dir($fieldOptions['path'])) {
+                $this->_prepareDir($fieldOptions['path']);
+            }
 
-            if (move_uploaded_file($fieldOptions['tmp_name'], $fileName) || (file_exists($fieldOptions['tmp_name']) && rename($fieldOptions['tmp_name'], $fileName))) {
-                if (preg_match('/^[0-9]+_/', $fieldName, $fieldMatches)) {
-                    $fieldName = preg_replace('/^' . $fieldMatches[0] . '/', '', $fieldName);
-                }
+            $file = $fieldOptions['path'] . DS . $fieldOptions['name'];
 
-                $fileTypes = $this->_config[$this->getTable()->getAlias()][$fieldName];
+            if (move_uploaded_file($fieldOptions['source'], $file) || (file_exists($fieldOptions['source']) && rename($fieldOptions['source'], $file))) {
+                $fileType = mb_strtolower(getimagesize($fieldOptions['source'])['mime']);
 
-                if (isset($fieldOptions['type']) && mb_strpos($fieldOptions['type'], 'image/') !== false && in_array(mb_strtolower($fieldOptions['type']), $fileTypes['types'])) {
-                    $this->prepareThumbs($fileName, $fileTypes);
+                $fieldTypes = array_map(function ($fieldType) {
+                    return mb_strtolower($fieldType);
+                }, $fieldOptions['types']);
+
+                // Create thumbs
+                if (mb_strpos($fileType, 'image/') !== false && in_array($fileType, $fieldTypes)) {
+                    $this->_prepareThumbs($file, $fieldOptions);
                 }
             }
         }
@@ -187,7 +193,7 @@ class FileBehavior extends Behavior
      * @param array $thumbParams Settings for uploaded files
      * @return boolean Output image to save file
      */
-    public function prepareThumbs($originalFile, $settingParams)
+    protected function _prepareThumbs($originalFile, $settingParams)
     {
         if (is_file($originalFile) && is_array($settingParams)) {
             // Check image library
@@ -204,7 +210,7 @@ class FileBehavior extends Behavior
                     switch ($fileExtension) {
                         case 'bmp':
                             $sourceImage = imagecreatefrombmp($originalFile);
-                            
+
                             break;
                         case 'gif':
                             $sourceImage = imagecreatefromgif($originalFile);
@@ -316,11 +322,11 @@ class FileBehavior extends Behavior
                             switch ($fileExtension) {
                                 case 'bmp':
                                     imagebmp($newImage, $thumbFile);
-                                    
+
                                     break;
                                 case 'gif':
                                     imagegif($newImage, $thumbFile);
-                                    
+
                                     break;
                                 case 'png':
                                     imagepng($newImage, $thumbFile);
@@ -466,7 +472,7 @@ class FileBehavior extends Behavior
      */
     protected function _prepareName($fieldName)
     {
-        return Text::uuid() . '_default.' . $this->getExtension($this->_files[$fieldName]['name']);
+        return Text::uuid() . '_default.' . $this->getExtension($fieldName);
     }
 
     /**
