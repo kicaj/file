@@ -7,6 +7,7 @@ use Cake\Event\Event;
 use Cake\Datasource\EntityInterface;
 use File\Exception\LibraryException;
 use File\Exception\ThumbsException;
+use File\Exception\MaxFileSizeExceededException;
 
 class FileBehavior extends Behavior
 {
@@ -102,6 +103,10 @@ class FileBehavior extends Behavior
 
                             $data[$field] = $this->_files[$field]['name'];
                         } else {
+                            if ($data[$field]['error'] === 1) {
+                                throw new MaxFileSizeExceededException();
+                            }
+
                             unset($data[$field]);
                         }
                     }
