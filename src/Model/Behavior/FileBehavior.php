@@ -7,7 +7,6 @@ use Cake\Event\Event;
 use Cake\Datasource\EntityInterface;
 use File\Exception\LibraryException;
 use File\Exception\ThumbsException;
-use File\Exception\MaxFileSizeExceededException;
 
 class FileBehavior extends Behavior
 {
@@ -103,10 +102,6 @@ class FileBehavior extends Behavior
 
                             $data[$field] = $this->_files[$field]['name'];
                         } else {
-                            if ($data[$field]['error'] === 1) {
-                                throw new MaxFileSizeExceededException();
-                            }
-
                             unset($data[$field]);
                         }
                     }
@@ -128,7 +123,7 @@ class FileBehavior extends Behavior
      */
     public function beforeDelete(Event $event, EntityInterface $entity)
     {
-        return $this->deleteFile($event);
+        return $this->deleteFile($entity);
     }
 
     /**
@@ -161,28 +156,22 @@ class FileBehavior extends Behavior
     }
 
     /**
-     * Delete file with created thumbs
+     * Delete file with created thumbs.
      *
-     * @param Event $event Reference to event
-     * @return boolean True if is success
+     * @param EntityInterface $entity Entity
+     * @return boolean True if is successful.
      */
-    public function deleteFile(Event $event)
+    public function deleteFile(EntityInterface $entity)
     {
-        // Get field list of model schema
-        $modelSchema = $model->schema();
+        if (!empty($config = $this->getConfig($this->getTable()->getAlias()))) {
+            foreach ($config as $field => $fieldOptions) {
+                if (isset($entity[$field])) {
+                    $path = $fieldOptions['path'] . DS . substr($entity[$field], 0, 37);
 
-        foreach ($this->settings[$model->alias] as $fieldName => $fieldOptions) {
-            // Check is field in model schema
-            if (isset($modelSchema[$fieldName])) {
-                $dataField = $model->findById($model->id);
-
-                if (is_array($dataField) && !empty($dataField[$model->alias][$fieldName])) {
-                    // Pattern for original file with thumbs
-                    $filePattern = $this->settings[$model->alias][$fieldName]['path'] . DS . substr($dataField[$model->alias][$fieldName], 0, 14);
-
-                    foreach (glob($filePattern . '*') as $fileName) {
-                        // Remove file
-                        @unlink($fileName);
+                    foreach (glob($path . '*') as $file) {
+                        if (file_exists($file)) {
+                            unlink($file);
+                        }
                     }
                 }
             }
