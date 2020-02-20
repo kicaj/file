@@ -141,6 +141,12 @@ class FileBehavior extends Behavior
         return $this->deleteFiles($entity);
     }
 
+    /**
+     * Create thumbs.
+     *
+     * @param string $file File name.
+     * @param array $fileConfig File config.
+     */
     protected function createThumbs(string $file, array $fileConfig): void
     {
         $filePath = $fileConfig['path'] . DS . $file;
