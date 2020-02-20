@@ -14,15 +14,15 @@ class FileHelper extends Helper
     ];
 
     /**
-     * Thumb image
+     * Thumb image.
      *
-     * @param string|array $path Path to the image file, relative to the app/webroot/img/ direct
+     * @param string|array $path Path to the image file, relative to the app/webroot/img/ direct.
      * @param array $options Array of HTML attributes. See above for special options.
-     * @param string $thumb Name of thumb
-     * @return string completed img tag
+     * @param string $thumb Name of thumb.
+     * @return string completed img tag.
      * @see https://book.cakephp.org/3.0/en/views/helpers/html.html#linking-to-images
      */
-    public function thumb($path, $options = [], $thumb = 'default')
+    public function thumb($path, array $options = [], string $thumb = 'default'): string
     {
         if ($thumb !== 'default') {
             $path = preg_replace('/default/', $thumb, $path);

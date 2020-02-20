@@ -1,22 +1,28 @@
 <?php
 namespace File\Model\Behavior;
 
+use Cake\Datasource\EntityInterface;
+use Cake\Event\Event;
+use Cake\Event\EventInterface;
 use Cake\ORM\Behavior;
 use Cake\Utility\Text;
-use Cake\Event\Event;
-use Cake\Datasource\EntityInterface;
 use File\Exception\LibraryException;
+use File\Exception\PathException;
 use File\Exception\ThumbsException;
+use Laminas\Diactoros\UploadedFile;
+use ArrayObject;
 
 class FileBehavior extends Behavior
 {
 
     /**
-     * {@inheritDoc}
+     * Default config.
+     *
+     * @var array
      */
-    protected $_defaultConfig = [
+    public $defaultConfig = [
         'library' => 'gd',
-        'types' => [ // Default allowed types
+        'types' => [ // Default allowed types.
             'image/bmp',
             'image/gif',
             'image/jpeg',
@@ -27,7 +33,7 @@ class FileBehavior extends Behavior
             'image/x-png',
             'image/webp',
         ],
-        'extensions' => [ // Default allowed extensions
+        'extensions' => [ // Default allowed extensions.
             'bmp',
             'gif',
             'jpeg',
@@ -44,26 +50,28 @@ class FileBehavior extends Behavior
     ];
 
     /**
-     * Array of files to upload
+     * Array of files to upload.
      *
      * @var array
      */
-    protected $_files = [];
+    protected $files = [];
 
     /**
-     * {@inheritDoc}
+     * {@inheritdoc}
      */
-    public function initialize(array $config)
+    public function initialize(array $config): void
     {
-        $this->_config = [];
+        parent::initialize($config);
 
-        foreach ($config as $field => $fieldOptions) {
-            if (is_array($fieldOptions)) {
-                $this->_config[$this->getTable()->getAlias()][$field] = array_merge($this->_defaultConfig, $fieldOptions);
+        foreach ($this->getConfig() as $file => $fileConfig) {
+            $this->_configDelete($file);
+
+            if (!is_array($fileConfig)) {
+                $file = $fileConfig;
+
+                $this->setConfig($file, $this->defaultConfig);
             } else {
-                $field = $fieldOptions;
-
-                $this->_config[$this->getTable()->getAlias()][$field] = $this->_defaultConfig;
+                $this->setConfig($file, $config[$file] += $this->defaultConfig);
             }
         }
     }
@@ -71,39 +79,37 @@ class FileBehavior extends Behavior
     /**
      * {@inheritDoc}
      */
-    public function beforeMarshal(Event $event, $data = [], $options = [])
+    public function beforeMarshal(Event $event, ArrayObject $data, ArrayObject $options)
     {
-        if (!empty($config = $this->getConfig($this->getTable()->getAlias()))) {
-            foreach ($config as $field => $fieldOptions) {
-                if (array_key_exists($field, $data)) {
-                    // Save file array to suffixed field
-                    $data['_' . $field] = $data[$field];
+        $config = $this->getConfig();
 
-                    // Detect multiple files by array keys
-                    if (is_numeric(key($data[$field]))) {
-                        foreach (array_keys($data[$field]) as $key) {
-                            if (!empty($data[$field][$key]['tmp_name'])) {
-                                $this->_files[$field . '_' . $key] = array_merge($fieldOptions, [
-                                    'name' => $this->_prepareName($data[$field][$key]['name']),
-                                    'source' => $data[$field][$key]['tmp_name'],
-                                ]);
+        if (!empty($config)) {
+            foreach (array_keys($config) as $file) {
+                $this->setFile($file, $data[$file]);
 
-                                $data[$field][$key] = $this->_files[$field . '_' . $key]['name'];
-                            } else {
-                                unset($data[$field][$key]);
-                            }
-                        }
-                    } else {
-                        if (!empty($data[$field]['tmp_name'])) {
-                            $this->_files[$field] = array_merge($fieldOptions, [
-                                'name' => $this->_prepareName($data[$field]['name']),
-                                'source' => $data[$field]['tmp_name'],
-                            ]);
+                $data[$file] = $this->createName($data[$file]->getClientFilename());
+            }
+        }
+    }
 
-                            $data[$field] = $this->_files[$field]['name'];
-                        } else {
-                            unset($data[$field]);
-                        }
+    /**
+     * {@inheritDoc}
+     */
+    public function afterSave(EventInterface $event, EntityInterface $entity, ArrayObject $options)
+    {
+        $files = $this->getFiles();
+
+        if (!empty($files)) {
+            foreach ($files as $file => $fileObject) {
+                if ($fileObject->getError() === 0) {
+                    $fileConfig = $this->getConfig($file);
+
+                    // Move original file
+                    $fileObject->moveTo($this->getPath($fileConfig['path']) . DS . $entity->{$file});
+
+                    // Prepare thumb files
+                    if (!empty($fileConfig['thumbs'])) {
+                        $this->createThumbs($entity->{$file}, $fileConfig);
                     }
                 }
             }
@@ -113,115 +119,67 @@ class FileBehavior extends Behavior
     /**
      * {@inheritDoc}
      */
-    public function afterSave(Event $event, EntityInterface $entity, $options = [])
+    public function beforeDelete(Event $event, EntityInterface $entity, ArrayObject $options)
     {
-        $this->_prepareFile($entity);
+        $entity = $this->getTable()->find()->select(
+            array_merge(
+                [$this->getTable()->getPrimaryKey()],
+                array_keys($this->getConfig())
+            )
+        )->where([
+            $this->getTable()->getAlias() . '.' . $this->getTable()->getPrimaryKey() => $entity->{$this->getTable()->getPrimaryKey()},
+        ])->first();
+
+        return $this->deleteFiles($entity);
     }
 
     /**
      * {@inheritDoc}
      */
-    public function beforeDelete(Event $event, EntityInterface $entity)
+    public function afterDelete(Event $event, EntityInterface $entity, ArrayObject $options)
     {
-        return $this->deleteFile($entity);
+        return $this->deleteFiles($entity);
     }
 
-    /**
-     * Copy source file to destination and if field (image) has configurations for thumbs, then create them.
-     *
-     * @param EntityInterface $entity Entity
-     */
-    protected function _prepareFile(EntityInterface $entity)
+    protected function createThumbs(string $file, array $fileConfig): void
     {
-        foreach ($this->_files as $field => $fieldOptions) {
-            if (!is_dir($fieldOptions['path'])) {
-                $this->_prepareDir($fieldOptions['path']);
-            }
+        $filePath = $fileConfig['path'] . DS . $file;
 
-            $file = $fieldOptions['path'] . DS . $fieldOptions['name'];
-
-            if (move_uploaded_file($fieldOptions['source'], $file) || (file_exists($fieldOptions['source']) && rename($fieldOptions['source'], $file))) {
-                $fileType = mb_strtolower(getimagesize($fieldOptions['source'])['mime']);
-
-                $fieldTypes = array_map(function ($fieldType) {
-                    return mb_strtolower($fieldType);
-                }, $fieldOptions['types']);
-
-                // Create thumbs
-                if (mb_strpos($fileType, 'image/') !== false && in_array($fileType, $fieldTypes)) {
-                    $this->_prepareThumbs($file, $fieldOptions);
-                }
-            }
-        }
-    }
-
-    /**
-     * Delete file with created thumbs.
-     *
-     * @param EntityInterface $entity Entity
-     * @return boolean True if is successful.
-     */
-    public function deleteFile(EntityInterface $entity)
-    {
-        if (!empty($config = $this->getConfig($this->getTable()->getAlias()))) {
-            foreach ($config as $field => $fieldOptions) {
-                if (isset($entity[$field])) {
-                    $path = $fieldOptions['path'] . DS . substr($entity[$field], 0, 37);
-
-                    foreach (glob($path . '*') as $file) {
-                        if (file_exists($file)) {
-                            unlink($file);
-                        }
-                    }
-                }
-            }
-        }
-
-        return true;
-    }
-
-    /**
-     * Generate thumbs by names with parameters
-     *
-     * @param string $originalFile Path to original file
-     * @param array $thumbParams Settings for uploaded files
-     * @return boolean Output image to save file
-     */
-    protected function _prepareThumbs($originalFile, $settingParams)
-    {
-        if (is_file($originalFile) && is_array($settingParams)) {
-            // Check image library
-            if (!extension_loaded($settingParams['library'])) {
-                throw new LibraryException(__d('file', 'The library identified by {0} is not loaded!', $settingParams['library']));
+        if (is_file($filePath)) {
+            // Check installed image library
+            if (!extension_loaded($fileConfig['library'])) {
+                throw new LibraryException(__d('file', 'The library identified by {0} is not loaded!', $fileConfig['library']));
             }
 
             // Get extension from original file
-            $fileExtension = $this->getExtension($originalFile);
+            $fileExtension = $this->getExtension($file);
 
-            switch ($settingParams['library']) {
+            $fileConfig['library'] = mb_strtolower($fileConfig['library']);
+
+            switch ($fileConfig['library']) {
                 // Get image resource
                 case 'gd':
                     switch ($fileExtension) {
                         case 'bmp':
-                            $sourceImage = imagecreatefrombmp($originalFile);
+                            $sourceImage = imagecreatefrombmp($filePath);
 
                             break;
                         case 'gif':
-                            $sourceImage = imagecreatefromgif($originalFile);
+                            $sourceImage = imagecreatefromgif($filePath);
 
                             break;
                         case 'png':
-                            $sourceImage = imagecreatefrompng($originalFile);
+                            $sourceImage = imagecreatefrompng($filePath);
 
                             break;
                         case 'webp':
-                            $sourceImage = imagecreatefromwebp($originalFile);
+                            $sourceImage = imagecreatefromwebp($filePath);
 
                             break;
                         default:
                             ini_set('gd.jpeg_ignore_warning', 1);
 
-                            $sourceImage = imagecreatefromjpeg($originalFile);
+                            $sourceImage = imagecreatefromjpeg($filePath);
 
                             break;
                     }
@@ -240,7 +198,7 @@ class FileBehavior extends Behavior
 
                     break;
                 default:
-                    throw new LibraryException(__d('file', 'The library identified by {0} it is not known as image processing!', $settingParams['library']));
+                    throw new LibraryException(__d('file', 'The library identified by {0} it is not known as image processing!', $fileConfig['library']));
             }
 
             $offsetX = 0;
@@ -249,137 +207,224 @@ class FileBehavior extends Behavior
             $cropX = 0;
             $cropY = 0;
 
-            foreach ($settingParams['thumbs'] as $thumbName => $thumbParam) {
-                if (is_array($thumbParam)) {
-                    if (isset($thumbParam['width']) && is_array($thumbParam['width']) && count($thumbParam['width']) === 1) {
-                        list($newWidth, $newHeight) = $this->_byWidth($originalWidth, $originalHeight, $thumbParam['width'][0]);
-                    } elseif (isset($thumbParam['height']) && is_array($thumbParam['height']) && count($thumbParam['height']) === 1) {
-                        list($newWidth, $newHeight) = $this->_byHeight($originalWidth, $originalHeight, $thumbParam['height'][0]);
-                    } elseif (isset($thumbParam['shorter']) && is_array($thumbParam['shorter']) && count($thumbParam['shorter']) === 2) {
-                        list($newWidth, $newHeight) = $this->_byShorter($originalWidth, $originalHeight, $thumbParam['shorter'][0], $thumbParam['shorter'][1]);
-                    } elseif (isset($thumbParam['longer']) && is_array($thumbParam['longer']) && count($thumbParam['longer']) === 2) {
-                        list($newWidth, $newHeight) = $this->_byLonger($originalWidth, $originalHeight, $thumbParam['longer'][0], $thumbParam['longer'][1]);
-                    } elseif (isset($thumbParam['fit']) && is_array($thumbParam['fit']) && count($thumbParam['fit']) === 2) {
-                        list($newWidth, $newHeight, $offsetX, $offsetY, $cropX, $cropY) = $this->_byFit($originalWidth, $originalHeight, $thumbParam['fit'][0], $thumbParam['fit'][1]);
-                    } elseif (isset($thumbParam['fit']) && is_array($thumbParam['fit']) && count($thumbParam['fit']) === 3) {
-                        list($newWidth, $newHeight, $offsetX, $offsetY, $cropX, $cropY) = $this->_byFit($originalWidth, $originalHeight, $thumbParam['fit'][0], $thumbParam['fit'][1], $thumbParam['fit'][2]);
-                    } elseif (isset($thumbParam['square']) && is_array($thumbParam['square']) && count($thumbParam['square']) === 1) {
-                        list($newWidth, $newHeight, $offsetX, $offsetY, $cropX, $cropY) = $this->_bySquare($originalWidth, $originalHeight, $thumbParam['square'][0]);
-                    } elseif (isset($thumbParam['square']) && is_array($thumbParam['square']) && count($thumbParam['square']) === 2) {
-                        list($newWidth, $newHeight, $offsetX, $offsetY, $cropX, $cropY) = $this->_bySquare($originalWidth, $originalHeight, $thumbParam['square'][0], $thumbParam['square'][1]);
-                    } else {
-                        throw new ThumbsException(__d('file', 'Unknown type of creating thumbnails!'));
-                    }
+            foreach ($fileConfig['thumbs'] as $thumbName => $thumbConfig) {
+                if (isset($thumbConfig['width'])) {
+                    list($newWidth, $newHeight) = $this->getDimensionsByNewWidth($originalWidth, $originalHeight, $thumbConfig['width']);
+                } elseif (isset($thumbConfig['height'])) {
+                    list($newWidth, $newHeight) = $this->getDimensionsByNewHeight($originalWidth, $originalHeight, $thumbConfig['height']);
+                } elseif (isset($thumbConfig['shorter']) && is_array($thumbConfig['shorter']) && count($thumbConfig['shorter']) === 2) {
+                    list($newWidth, $newHeight) = $this->getDimensionsByShorterSide($originalWidth, $originalHeight, $thumbConfig['shorter'][0], $thumbConfig['shorter'][1]);
+                } elseif (isset($thumbConfig['longer']) && is_array($thumbConfig['longer']) && count($thumbConfig['longer']) === 2) {
+                    list($newWidth, $newHeight) = $this->getDimensionsByLongerSide($originalWidth, $originalHeight, $thumbConfig['longer'][0], $thumbConfig['longer'][1]);
+                } elseif (isset($thumbConfig['fit']) && is_array($thumbConfig['fit']) && count($thumbConfig['fit']) === 2) {
+                    list($newWidth, $newHeight, $offsetX, $offsetY, $cropX, $cropY) = $this->getDimensionsByFit($originalWidth, $originalHeight, $thumbConfig['fit'][0], $thumbConfig['fit'][1]);
+                } elseif (isset($thumbConfig['fit']) && is_array($thumbConfig['fit']) && count($thumbConfig['fit']) === 3) {
+                    list($newWidth, $newHeight, $offsetX, $offsetY, $cropX, $cropY) = $this->getDimensionsByFit($originalWidth, $originalHeight, $thumbConfig['fit'][0], $thumbConfig['fit'][1], $thumbConfig['fit'][2]);
+                } elseif (isset($thumbConfig['square']) && is_array($thumbConfig['square']) && count($thumbConfig['square']) === 1) {
+                    list($newWidth, $newHeight, $offsetX, $offsetY, $cropX, $cropY) = $this->getDimensionsByFitToSquare($originalWidth, $originalHeight, $thumbConfig['square'][0]);
+                } elseif (isset($thumbConfig['square']) && is_array($thumbConfig['square']) && count($thumbConfig['square']) === 2) {
+                    list($newWidth, $newHeight, $offsetX, $offsetY, $cropX, $cropY) = $this->getDimensionsByFitToSquare($originalWidth, $originalHeight, $thumbConfig['square'][0], $thumbConfig['square'][1]);
+                } else {
+                    throw new ThumbsException(__d('file', 'Unknown type or incorrect parameters of creating thumbnails!'));
+                }
 
-                    $thumbFile = str_replace('default', $thumbName, $originalFile);
+                $thumbFile = str_replace('default', $thumbName, $filePath);
 
-                    switch ($settingParams['library']) {
-                        // Get image resource
-                        case 'gd':
-                            $newImage = imagecreatetruecolor($newWidth, $newHeight);
+                switch ($fileConfig['library']) {
+                    // Get image resource
+                    case 'gd':
+                        $newImage = imagecreatetruecolor($newWidth, $newHeight);
 
-                            if (is_array($settingParams['background'])) {
+                        if (is_array($fileConfig['background'])) {
+                            // Set background color and transparent indicates
+                            imagefill($newImage, 0, 0, imagecolorallocatealpha($newImage, $fileConfig['background'][0], $fileConfig['background'][1], $fileConfig['background'][2], $fileConfig['background'][3]));
+                        }
+
+                        imagecopyresampled($newImage, $sourceImage, 0, 0, 0, 0, $newWidth, $newHeight, $originalWidth, $originalHeight);
+
+                        if ((isset($thumbConfig['square']) && is_array($thumbConfig['square'])) || (isset($thumbConfig['fit']) && is_array($thumbConfig['fit']))) {
+                            $fitImage = imagecreatetruecolor($newWidth + (2 * $offsetX) - (2 * $cropX), $newHeight + (2 * $offsetY) - (2 * $cropY));
+
+                            if (is_array($fileConfig['background'])) {
                                 // Set background color and transparent indicates
-                                imagefill($newImage, 0, 0, imagecolorallocatealpha($newImage, $settingParams['background'][0], $settingParams['background'][1], $settingParams['background'][2], $settingParams['background'][3]));
+                                imagefill($fitImage, 0, 0, imagecolorallocatealpha($fitImage, $fileConfig['background'][0], $fileConfig['background'][1], $fileConfig['background'][2], $fileConfig['background'][3]));
                             }
 
-                            imagecopyresampled($newImage, $sourceImage, 0, 0, 0, 0, $newWidth, $newHeight, $originalWidth, $originalHeight);
+                            imagecopyresampled($fitImage, $newImage, $offsetX, $offsetY, $cropX, $cropY, $newWidth, $newHeight, $newWidth, $newHeight);
 
-                            if ((isset($thumbParam['square']) && is_array($thumbParam['square'])) || (isset($thumbParam['fit']) && is_array($thumbParam['fit']))) {
-                                $fitImage = imagecreatetruecolor($newWidth + (2 * $offsetX) - (2 * $cropX), $newHeight + (2 * $offsetY) - (2 * $cropY));
+                            $newImage = $fitImage;
+                        }
 
-                                if (is_array($settingParams['background'])) {
-                                    // Set background color and transparent indicates
-                                    imagefill($fitImage, 0, 0, imagecolorallocatealpha($fitImage, $settingParams['background'][0], $settingParams['background'][1], $settingParams['background'][2], $settingParams['background'][3]));
-                                }
+                        imagealphablending($newImage, false);
+                        imagesavealpha($newImage, true);
 
-                                imagecopyresampled($fitImage, $newImage, $offsetX, $offsetY, $cropX, $cropY, $newWidth, $newHeight, $newWidth, $newHeight);
+                        // Watermark
+                        if (isset($thumbConfig['watermark']) && ($watermarkSource = file_get_contents($fileConfig['watermark'])) !== false) {
+                            $watermarkImage = imagecreatefromstring($watermarkSource);
 
-                                $newImage = $fitImage;
-                            }
+                            list($watermarkPositionX, $watermarkPositionY) = $this->getPosition(imagesx($newImage), imagesy($newImage), imagesx($watermarkImage), imagesy($watermarkImage), $offsetX, $offsetY, $thumbConfig['watermark']);
 
-                            imagealphablending($newImage, false);
-                            imagesavealpha($newImage, true);
+                            // Set transparent
+                            imagealphablending($newImage, true);
+                            imagecopy($newImage, $watermarkImage, $watermarkPositionX, $watermarkPositionY, 0, 0, imagesx($watermarkImage), imagesy($watermarkImage));
+                        }
 
-                            // Watermark
-                            if (isset($thumbParam['watermark']) && ($watermarkSource = file_get_contents($settingParams['watermark'])) !== false) {
-                                $watermarkImage = imagecreatefromstring($watermarkSource);
+                        // Set resource file type
+                        switch ($fileExtension) {
+                            case 'bmp':
+                                imagebmp($newImage, $thumbFile);
 
-                                list($watermarkPositionX, $watermarkPositionY) = $this->getPosition(imagesx($newImage), imagesy($newImage), imagesx($watermarkImage), imagesy($watermarkImage), $offsetX, $offsetY, $thumbParam['watermark']);
+                                break;
+                            case 'gif':
+                                imagegif($newImage, $thumbFile);
 
-                                // Set transparent
-                                imagealphablending($newImage, true);
-                                imagecopy($newImage, $watermarkImage, $watermarkPositionX, $watermarkPositionY, 0, 0, imagesx($watermarkImage), imagesy($watermarkImage));
-                            }
+                                break;
+                            case 'png':
+                                imagepng($newImage, $thumbFile);
 
-                            // Set resource file type
-                            switch ($fileExtension) {
-                                case 'bmp':
-                                    imagebmp($newImage, $thumbFile);
+                                break;
+                            case 'webp':
+                                imagewebp($newImage, $thumbFile);
 
-                                    break;
-                                case 'gif':
-                                    imagegif($newImage, $thumbFile);
+                                break;
+                            default:
+                                imagejpeg($newImage, $thumbFile, 100);
 
-                                    break;
-                                case 'png':
-                                    imagepng($newImage, $thumbFile);
+                                break;
+                        }
 
-                                    break;
-                                case 'webp':
-                                    imagewebp($newImage, $thumbFile);
+                        break;
+                    case 'imagick':
+                        $newImage = $sourceImage->clone();
 
-                                    break;
-                                default:
-                                    imagejpeg($newImage, $thumbFile, 100);
+                        $newImage->scaleimage($newWidth, $newHeight);
+                        $newImage->setimagebackgroundcolor('transparent');
+                        $newImage->extentimage($newWidth + (2 * $offsetX), $newHeight + (2 * $offsetY), -$offsetX, -$offsetY);
 
-                                    break;
-                            }
+                        if ((isset($thumbConfig['square']) && is_array($thumbConfig['square'])) || (isset($thumbConfig['fit']) && is_array($thumbConfig['fit']))) {
+                            $newImage->cropimage($newWidth + (2 * $offsetX) - (2 * $cropX), $newHeight + (2 * $offsetY) - (2 * $cropY), $cropX, $cropY);
+                        }
 
-                            break;
-                        case 'imagick':
-                            $newImage = $sourceImage->clone();
+                        // Watermark
+                        if (isset($thumbConfig['watermark']) && ($watermarkSource = file_get_contents($fileConfig['watermark'])) !== false) {
+                            $watermarkImage = new \Imagick();
+                            $watermarkImage->readimageblob($watermarkSource);
 
-                            $newImage->scaleimage($newWidth, $newHeight);
-                            $newImage->setimagebackgroundcolor('transparent');
-                            $newImage->extentimage($newWidth + (2 * $offsetX), $newHeight + (2 * $offsetY), -$offsetX, -$offsetY);
+                            list($watermarkPositionX, $watermarkPositionY) = $this->getPosition($newWidth, $newHeight, $watermarkImage->getimagewidth(), $watermarkImage->getimageheight(), $offsetX, $offsetY, $thumbConfig['watermark']);
 
-                            if ((isset($thumbParam['square']) && is_array($thumbParam['square'])) || (isset($thumbParam['fit']) && is_array($thumbParam['fit']))) {
-                                $newImage->cropimage($newWidth + (2 * $offsetX) - (2 * $cropX), $newHeight + (2 * $offsetY) - (2 * $cropY), $cropX, $cropY);
-                            }
+                            $newImage->compositeimage($watermarkImage, \Imagick::COMPOSITE_OVER, $watermarkPositionX, $watermarkPositionY);
+                        }
 
-                            // Watermark
-                            if (isset($thumbParam['watermark']) && ($watermarkSource = file_get_contents($settingParams['watermark'])) !== false) {
-                                $watermarkImage = new \Imagick();
-                                $watermarkImage->readimageblob($watermarkSource);
+                        // Set object file type
+                        $newImage->setImageFormat($fileExtension);
 
-                                list($watermarkPositionX, $watermarkPositionY) = $this->getPosition($newWidth, $newHeight, $watermarkImage->getimagewidth(), $watermarkImage->getimageheight(), $offsetX, $offsetY, $thumbParam['watermark']);
+                        $newImage->writeimage($thumbFile);
+                        $newImage->clear();
 
-                                $newImage->compositeimage($watermarkImage, \Imagick::COMPOSITE_OVER, $watermarkPositionX, $watermarkPositionY);
-                            }
-
-                            // Set object file type
-                            $newImage->setImageFormat($fileExtension);
-
-                            $newImage->writeimage($thumbFile);
-                            $newImage->clear();
-
-                            break;
-                    }
+                        break;
                 }
             }
         }
     }
 
     /**
-     * Get extension from original name
+     * Delete files with created thumbs.
      *
-     * @param string $originalName Name of original file
-     * @return string Extension of uploaded file
+     * @param EntityInterface $entity Entity
+     * @return boolean True if is successful.
      */
-    public function getExtension($originalName)
+    protected function deleteFiles(EntityInterface $entity)
     {
-        $fileExtension = pathinfo(mb_strtolower($originalName), PATHINFO_EXTENSION);
+        $config = $this->getConfig();
+
+        if (!empty($config)) {
+            foreach ($config as $file => $fileConfig) {
+                if (isset($entity[$file])) {
+                    $path = $fileConfig['path'] . DS . substr($entity[$file], 0, 37);
+
+                    foreach (glob($path . '*') as $file) {
+                        if (file_exists($file)) {
+                            unlink($file);
+                        }
+                    }
+                }
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Get files fields with config.
+     *
+     * @return array Files fields with config.
+     */
+    protected function getFiles(): array
+    {
+        return $this->files;
+    }
+
+    /**
+     * Set file fields config.
+     *
+     * @param string $file File name.
+     * @param UploadedFile $data Uploaded data.
+     */
+    protected function setFile(string $file, UploadedFile $data): void
+    {
+        $this->files[$file] = $data;
+    }
+
+    /**
+     * Get file path.
+     *
+     * @param string $path Path.
+     * @return string Path.
+     */
+    protected function getPath(string $path): string
+    {
+        if (!is_dir($path)) {
+            $this->setPath($path);
+        }
+
+        return $path;
+    }
+
+    /**
+     * Set file path.
+     *
+     * @param string $path Path.
+     * @return string Path.
+     */
+    protected function setPath(string $path): string
+    {
+        if (mkdir($path, 0777, true)) {
+            return $path;
+        }
+
+        throw new PathException(__d('file', 'Could not set path'));
+    }
+
+    /**
+     * Create file name.
+     *
+     * @param string $name Uploaded file name.
+     * @return string Unique file name.
+     */
+    protected function createName(string $name): string
+    {
+        return Text::uuid() . '_default.' . $this->getExtension($name);
+    }
+
+    /**
+     * Get extension from file name.
+     *
+     * @param string $name File name.
+     * @return string Extension of uploaded file.
+     */
+    protected function getExtension(string $name): string
+    {
+        $fileExtension = pathinfo(mb_strtolower($name), PATHINFO_EXTENSION);
 
         switch ($fileExtension) {
             case 'jpg':
@@ -398,42 +443,42 @@ class FileBehavior extends Behavior
     }
 
     /**
-     * Get position of watermark image
+     * Get position of watermark image.
      *
-     * @param integer $newWidth New width of uploaded image
-     * @param integer $newHeight New height of uploaded image
-     * @param integer $watermarkWidth Original width of watermark image
-     * @param integer $watermarkHeight Original height of watermark image
-     * @param integer $offsetX Horizontal offset
-     * @param integer $offsetY Vertical offset
-     * @param integer $positionValue Value for position watermark, value between 1 and 9
-     * @return array Coordinates of position watermark
+     * @param integer $newWidth New width of uploaded image.
+     * @param integer $newHeight New height of uploaded image.
+     * @param integer $watermarkWidth Original width of watermark image.
+     * @param integer $watermarkHeight Original height of watermark image.
+     * @param integer $offsetX Horizontal offset.
+     * @param integer $offsetY Vertical offset.
+     * @param integer $positionValue Value for position watermark, value between 1 and 9.
+     * @return array Coordinates of position watermark.
      */
-    public function getPosition($newWidth, $newHeight, $watermarkWidth, $watermarkHeight, $offsetX = 0, $offsetY = 0, $positionValue = 1)
+    protected function getPosition(int $newWidth, int $newHeight, int $watermarkWidth, int $watermarkHeight, int $offsetX = 0, int $offsetY = 0, int $positionValue = 1): array
     {
-        switch (intval($positionValue)) {
+        switch ($positionValue) {
             case 1: // Top left
                 return [$offsetX, $offsetY];
 
                 break;
             case 2: // Top center
-                return [($newWidth / 2) - ($watermarkWidth / 2), 0 + $offsetY];
+                return [($newWidth / 2) - ($watermarkWidth / 2), $offsetY];
 
                 break;
             case 3: // Top right
-                return [($newWidth - $watermarkWidth) - $offsetX, 0 + $offsetY];
+                return [($newWidth - $watermarkWidth - $offsetX), $offsetY];
 
                 break;
             case 4: // Middle left
-                return [$offsetX, ($newHeight / 2) - ($watermarkHeight / 2)];
+                return [$offsetX, intval(($newHeight / 2) - ($watermarkHeight / 2))];
 
                 break;
             case 5: // Middle center
-                return [($newWidth / 2) - ($watermarkWidth / 2), ($newHeight / 2) - ($watermarkHeight / 2)];
+                return [intval(($newWidth / 2) - ($watermarkWidth / 2)), intval(($newHeight / 2) - ($watermarkHeight / 2))];
 
                 break;
             case 6: // Middle right
-                return [($newWidth - $watermarkWidth) - $offsetX, ($newHeight / 2) - ($watermarkHeight / 2)];
+                return [($newWidth - $watermarkWidth) - $offsetX, intval(($newHeight / 2) - ($watermarkHeight / 2))];
 
                 break;
             case 7: // Bottom left
@@ -441,7 +486,7 @@ class FileBehavior extends Behavior
 
                 break;
             case 8: // Bottom center
-                return [($newWidth / 2) - ($watermarkWidth / 2), ($newHeight - $watermarkHeight) - $offsetY];
+                return [intval(($newWidth / 2) - ($watermarkWidth / 2)), ($newHeight - $watermarkHeight) - $offsetY];
 
                 break;
             case 9: // Bottom right
@@ -456,51 +501,15 @@ class FileBehavior extends Behavior
     }
 
     /**
-     * Generate random name of uploaded file.
-     * If action is for update with not used file then it will be removed.
+     * Get dimension by new width.
      *
-     * @todo Prepare method for working without primary key field
-     * @todo Generate names of files by user method
-     * @param string $fieldName Name of file field
-     * @return string New name of file
+     * @param integer $originalWidth Original width of uploaded image.
+     * @param integer $originalHeight Original height of uploaded image.
+     * @param integer $newWidth Set new image width.
+     * @return array New width and height.
      */
-    protected function _prepareName($fieldName)
+    public static function getDimensionsByNewWidth(int $originalWidth, int $originalHeight, int $newWidth): array
     {
-        return Text::uuid() . '_default.' . $this->getExtension($fieldName);
-    }
-
-    /**
-     * Set path to directory for save uploaded files.
-     * If directory isn't exists, will be created with full privileges.
-     *
-     * @param string $dirPath Path to directory
-     * @return string Path to directory
-     */
-    protected function _prepareDir($dirPath)
-    {
-        $dirPath = WWW_ROOT . str_replace('/', DS, $dirPath);
-
-        if (!is_dir($dirPath) && mb_strlen($dirPath) > 0) {
-            mkdir($dirPath, 0777, true);
-        }
-
-        chmod($dirPath, 0777);
-
-        return $dirPath;
-    }
-
-    /**
-     * Create image dimension by new width.
-     *
-     * @param integer $originalWidth Original width of uploaded image
-     * @param integer $originalHeight Original height of uploaded image
-     * @param integer $newWidth Set new image width
-     * @return array New width and height
-     */
-    protected function _byWidth($originalWidth, $originalHeight, $newWidth)
-    {
-        $newWidth = intval($newWidth);
-
         if ($newWidth > $originalWidth) {
             $newWidth = $originalWidth;
             $newHeight = $originalHeight;
@@ -512,17 +521,15 @@ class FileBehavior extends Behavior
     }
 
     /**
-     * Create image dimension by new height.
+     * Get dimension by new height.
      *
-     * @param integer $originalWidth Original width of uploaded image
-     * @param integer $originalHeight Original height of uploaded image
-     * @param integer $newHeight Set new image height
-     * @return array New width and height
+     * @param integer $originalWidth Original width of uploaded image.
+     * @param integer $originalHeight Original height of uploaded image.
+     * @param integer $newHeight Set new image height.
+     * @return array New width and height.
      */
-    protected function _byHeight($originalWidth, $originalHeight, $newHeight)
+    public static function getDimensionsByNewHeight(int $originalWidth, int $originalHeight, int $newHeight): array
     {
-        $newHeight = intval($newHeight);
-
         if ($newHeight > $originalHeight) {
             $newHeight = $originalHeight;
             $newWidth = $originalWidth;
@@ -534,66 +541,57 @@ class FileBehavior extends Behavior
     }
 
     /**
-     * Create image dimension by shorter side.
+     * Get dimension by shorter side.
      *
-     * @param integer $originalWidth Original width of uploaded image
-     * @param integer $originalHeight Original height of uploaded image
-     * @param integer $newWidth Set new image min width
-     * @param integer $newHeight Set new image min height
-     * @return array New width and height
+     * @param integer $originalWidth Original width of uploaded image.
+     * @param integer $originalHeight Original height of uploaded image.
+     * @param integer $newWidth Set new image min width.
+     * @param integer $newHeight Set new image min height.
+     * @return array New width and height.
      */
-    protected function _byShorter($originalWidth, $originalHeight, $newWidth, $newHeight)
+    public static function getDimensionsByShorterSide(int $originalWidth, int $originalHeight, int $newWidth, int $newHeight): array
     {
-        $newWidth = intval($newWidth);
-        $newHeight = intval($newHeight);
-
         if ($originalWidth < $originalHeight) {
-            list($newWidth, $newHeight) = $this->_byWidth($originalWidth, $originalHeight, $newWidth);
+            list($newWidth, $newHeight) = self::getDimensionsByNewWidth($originalWidth, $originalHeight, $newWidth);
         } else {
-            list($newWidth, $newHeight) = $this->_byHeight($originalWidth, $originalHeight, $newHeight);
+            list($newWidth, $newHeight) = self::getDimensionsByNewHeight($originalWidth, $originalHeight, $newHeight);
         }
 
         return [$newWidth, $newHeight];
     }
 
     /**
-     * Create image dimension by longer side.
+     * Get dimension by longer side.
      *
-     * @param integer $originalWidth Original width of uploaded image
-     * @param integer $originalHeight Original height of uploaded image
-     * @param integer $newWidth Set new image max width
-     * @param integer $newHeight Set new image max height
-     * @return array New width and height
+     * @param integer $originalWidth Original width of uploaded image.
+     * @param integer $originalHeight Original height of uploaded image.
+     * @param integer $newWidth Set new image max width.
+     * @param integer $newHeight Set new image max height.
+     * @return array New width and height.
      */
-    protected function _byLonger($originalWidth, $originalHeight, $newWidth, $newHeight)
+    public static function getDimensionsByLongerSide(int $originalWidth, int $originalHeight, int $newWidth, int $newHeight): array
     {
-        $newWidth = intval($newWidth);
-        $newHeight = intval($newHeight);
-
         if ($originalWidth > $originalHeight) {
-            list($newWidth, $newHeight) = $this->_byWidth($originalWidth, $originalHeight, $newWidth);
+            list($newWidth, $newHeight) = self::getDimensionsByNewWidth($originalWidth, $originalHeight, $newWidth);
         } else {
-            list($newWidth, $newHeight) = $this->_byHeight($originalWidth, $originalHeight, $newHeight);
+            list($newWidth, $newHeight) = self::getDimensionsByNewHeight($originalWidth, $originalHeight, $newHeight);
         }
 
         return [$newWidth, $newHeight];
     }
 
     /**
-     * Create image dimension by fit.
+     * Get dimension by fit.
      *
-     * @param integer $originalWidth Original width of uploaded image
-     * @param integer $originalHeight Original height of uploaded image
-     * @param integer $newWidth Set new image width
-     * @param integer $newHeight Set new image height
-     * @param boolean $originalKeep Save original shape
-     * @return array New width and height and offsets of position with keeping original shape
+     * @param integer $originalWidth Original width of uploaded image.
+     * @param integer $originalHeight Original height of uploaded image.
+     * @param integer $newWidth Set new image width.
+     * @param integer $newHeight Set new image height.
+     * @param boolean $originalKeep Save original shape.
+     * @return array New width and height and offsets of position with keeping original shape.
      */
-    protected function _byFit($originalWidth, $originalHeight, $newWidth, $newHeight, $originalKeep = false)
+    public static function getDimensionsByFit(int $originalWidth, int $originalHeight, int $newWidth, int $newHeight, bool $originalKeep = false): array
     {
-        $newWidth = intval($newWidth);
-        $newHeight = intval($newHeight);
-
         $offsetX = 0;
         $offsetY = 0;
         $cropX = 0;
@@ -601,22 +599,22 @@ class FileBehavior extends Behavior
 
         if ($originalKeep === true) {
             if ($originalWidth == $originalHeight) {
-                $newSizes = $this->_byLonger($originalWidth, $originalHeight, min($newWidth, $newHeight), min($newWidth, $newHeight));
+                $newSizes = self::getDimensionsByLongerSide($originalWidth, $originalHeight, min($newWidth, $newHeight), min($newWidth, $newHeight));
             } else {
-                $newSizes = $this->_byLonger($originalWidth, $originalHeight, $newWidth, $newHeight);
+                $newSizes = self::getDimensionsByLongerSide($originalWidth, $originalHeight, $newWidth, $newHeight);
 
                 if ($newWidth < $newSizes[0] || $newHeight < $newSizes[1]) {
-                    $newSizes = $this->_byShorter($originalWidth, $originalHeight, $newWidth, $newHeight);
+                    $newSizes = self::getDimensionsByShorterSide($originalWidth, $originalHeight, $newWidth, $newHeight);
                 }
             }
         } else {
             if ($originalWidth == $originalHeight) {
-                $newSizes = $this->_byShorter($originalWidth, $originalHeight, max($newWidth, $newHeight), max($newWidth, $newHeight));
+                $newSizes = self::getDimensionsByShorterSide($originalWidth, $originalHeight, max($newWidth, $newHeight), max($newWidth, $newHeight));
             } else {
-                $newSizes = $this->_byShorter($originalWidth, $originalHeight, $newWidth, $newHeight);
+                $newSizes = self::getDimensionsByShorterSide($originalWidth, $originalHeight, $newWidth, $newHeight);
 
                 if ($newWidth > $newSizes[0] || $newHeight > $newSizes[1]) {
-                    $newSizes = $this->_byLonger($originalWidth, $originalHeight, $newWidth, $newHeight);
+                    $newSizes = self::getDimensionsByLongerSide($originalWidth, $originalHeight, $newWidth, $newHeight);
                 }
             }
         }
@@ -633,29 +631,27 @@ class FileBehavior extends Behavior
             $offsetY = ($newHeight - $newSizes[1]) / 2;
         }
 
-        return [$newSizes[0], $newSizes[1], $offsetX, $offsetY, $cropX, $cropY];
+        return [$newSizes[0], $newSizes[1], intval($offsetX), intval($offsetY), intval($cropX), intval($cropY)];
     }
 
     /**
-     * Create image dimension to square
+     * Get dimension to square.
      *
-     * @param integer $originalWidth Original width of uploaded image
-     * @param integer $originalHeight Original height of uploaded image
-     * @param integer $newSide Set new image side
-     * @param boolean $originalKeep Save original shape
-     * @return array New width and height with coordinates of crop or offsets of position
+     * @param integer $originalWidth Original width of uploaded image.
+     * @param integer $originalHeight Original height of uploaded image.
+     * @param integer $newSide Set new image side.
+     * @param boolean $originalKeep Save original shape.
+     * @return array New width and height with coordinates of crop or offsets of position.
      */
-    protected function _bySquare($originalWidth, $originalHeight, $newSide, $originalKeep = false)
+    public static function getDimensionsByFitToSquare(int $originalWidth, int $originalHeight, int $newSide, bool $originalKeep = false): array
     {
-        $newSide = intval($newSide);
-
         $offsetX = 0;
         $offsetY = 0;
         $cropX = 0;
         $cropY = 0;
 
         if ($originalKeep === true) {
-            list($newWidth, $newHeight) = $this->_byLonger($originalWidth, $originalHeight, $newSide, $newSide);
+            list($newWidth, $newHeight) = self::getDimensionsByLongerSide($originalWidth, $originalHeight, $newSide, $newSide);
 
             if ($newSide > $newWidth) {
                 $offsetX = ($newSide - $newWidth) / 2;
@@ -665,7 +661,7 @@ class FileBehavior extends Behavior
                 $offsetY = ($newSide - $newHeight) / 2;
             }
         } else {
-            list($newWidth, $newHeight) = $this->_byShorter($originalWidth, $originalHeight, $newSide, $newSide);
+            list($newWidth, $newHeight) = self::getDimensionsByShorterSide($originalWidth, $originalHeight, $newSide, $newSide);
 
             if ($newSide < $newWidth) {
                 $cropX = ($newWidth - $newSide) / 2;
@@ -680,6 +676,6 @@ class FileBehavior extends Behavior
             }
         }
 
-        return [$newWidth, $newHeight, $offsetX, $offsetY, $cropX, $cropY];
+        return [$newWidth, $newHeight, intval($offsetX), intval($offsetY), intval($cropX), intval($cropY)];
     }
 }
