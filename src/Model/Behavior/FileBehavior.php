@@ -11,6 +11,7 @@ use File\Exception\PathException;
 use File\Exception\ThumbsException;
 use Laminas\Diactoros\UploadedFile;
 use ArrayObject;
+use File\Exception\AccessibleException;
 
 class FileBehavior extends Behavior
 {
@@ -85,9 +86,11 @@ class FileBehavior extends Behavior
 
         if (!empty($config)) {
             foreach (array_keys($config) as $file) {
-                $this->setFile($file, $data[$file]);
+                if (!empty($data[$file])) {
+                    $this->setFile($file, $data[$file]);
 
-                $data[$file] = $this->createName($data[$file]->getClientFilename());
+                    $data[$file] = $this->createName($data[$file]->getClientFilename());
+                }
             }
         }
     }
@@ -101,16 +104,20 @@ class FileBehavior extends Behavior
 
         if (!empty($files)) {
             foreach ($files as $file => $fileObject) {
-                if ($fileObject->getError() === 0) {
-                    $fileConfig = $this->getConfig($file);
+                if ($entity->isAccessible($file)) {
+                    if ($fileObject->getError() === 0) {
+                        $fileConfig = $this->getConfig($file);
 
-                    // Move original file
-                    $fileObject->moveTo($this->getPath($fileConfig['path']) . DS . $entity->{$file});
+                        // Move original file
+                        $fileObject->moveTo($this->getPath($fileConfig['path']) . DS . $entity->{$file});
 
-                    // Prepare thumb files
-                    if (!empty($fileConfig['thumbs'])) {
-                        $this->createThumbs($entity->{$file}, $fileConfig);
+                        // Prepare thumb files
+                        if (!empty($fileConfig['thumbs'])) {
+                            $this->createThumbs($entity->{$file}, $fileConfig);
+                        }
                     }
+                } else {
+                    throw new AccessibleException(__d('file', 'Field {0} should be accessible.', $file));
                 }
             }
         }
