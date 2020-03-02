@@ -18,7 +18,7 @@ composer require kicaj/file
 
 ## Setup
 
-Add file type input in Your view:
+Add file type input in your view:
 
 ```
 echo $this->Form->control('logo', [
@@ -26,11 +26,11 @@ echo $this->Form->control('logo', [
 ]);
 ```
 
-You should also add `'type' => 'file'` in Your creating form method.
+You should also add `'type' => 'file'` in your creating form method.
 
-Note: If You want use multiple file input (from HTML5), just replace name of input field from `logo` to `logo[]` and add to options attribute `multiple`. 
+Note: If you want use multiple file input (from HTML5), just replace name of input field from `logo` to `logo[]` and add to options attribute `multiple`. 
 
-Next, load behavior in Your table on `initialize` method, like below:
+Next, load behavior in your table on `initialize` method, like below:
 
 ```
 $this->addBehavior('File.File', [
