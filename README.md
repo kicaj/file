@@ -37,6 +37,7 @@ $this->addBehavior('File.File', [
     'logo',
 ]);
 ```
+Note: Field should be accessible in Entity class.
 
 ## TODOs
 
