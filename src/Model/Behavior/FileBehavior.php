@@ -86,10 +86,12 @@ class FileBehavior extends Behavior
 
         if (!empty($config)) {
             foreach (array_keys($config) as $file) {
-                if (!empty($data[$file])) {
+                if (isset($data[$file]) && !empty($data[$file]->getClientFilename())) {
                     $this->setFile($file, $data[$file]);
 
                     $data[$file] = $this->createName($data[$file]->getClientFilename());
+                } else {
+                    unset($data[$file]);
                 }
             }
         }
