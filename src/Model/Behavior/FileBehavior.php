@@ -1,17 +1,17 @@
 <?php
-namespace File\Model\Behavior;
+namespace SlicesCake\File\Model\Behavior;
 
 use Cake\Datasource\EntityInterface;
 use Cake\Event\Event;
 use Cake\Event\EventInterface;
 use Cake\ORM\Behavior;
 use Cake\Utility\Text;
-use File\Exception\LibraryException;
-use File\Exception\PathException;
-use File\Exception\ThumbsException;
+use SlicesCale\File\Exception\LibraryException;
+use SlicesCale\File\Exception\PathException;
+use SlicesCale\File\Exception\ThumbsException;
 use Laminas\Diactoros\UploadedFile;
 use ArrayObject;
-use File\Exception\AccessibleException;
+use SlicesCale\File\Exception\AccessibleException;
 
 class FileBehavior extends Behavior
 {

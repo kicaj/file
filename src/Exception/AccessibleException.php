@@ -1,5 +1,5 @@
 <?php
-namespace File\Exception;
+namespace SlicesCake\File\Exception;
 
 use Cake\Core\Exception\Exception;
 

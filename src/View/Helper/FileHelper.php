@@ -1,5 +1,5 @@
 <?php
-namespace File\View\Helper;
+namespace SlicesCake\File\View\Helper;
 
 use Cake\View\Helper;
 

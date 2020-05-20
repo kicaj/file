@@ -2,9 +2,7 @@
 
 ## Requirements
 
-It is developed for CakePHP 3.x.
-
-If would like using in Cake 2.x check branch named `2.x`, but it is no longer supported.
+It is developed for CakePHP 4.x.
 
 ## Installation
 
@@ -13,7 +11,7 @@ You can install plugin into your CakePHP application using [composer](http://get
 The recommended way to install composer packages is:
 
 ```
-composer require kicaj/file
+composer require slicesofcake/file
 ```
 
 ## Setup
