@@ -1,6 +1,6 @@
 {
 	"name" : "slicesofcake/file",
-	"description" : "Plugin for CakePHP for upload files with processing images using GD or ImageMagick library",
+	"description" : "CakePHP plugin for upload files with processing images using GD or ImageMagick library",
 	"type" : "cakephp-plugin",
 	"license" : "MIT",
 	"support" : {
