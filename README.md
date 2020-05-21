@@ -1,4 +1,4 @@
-# File plugin for CakePHP
+# CakePHP plugin for upload files
 
 ## Requirements
 
