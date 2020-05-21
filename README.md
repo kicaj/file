@@ -1,5 +1,7 @@
 # CakePHP plugin for upload files
 
+Upload files with processing images using GD or ImageMagick library.
+
 ## Requirements
 
 It is developed for CakePHP 4.x.
