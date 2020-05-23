@@ -22,7 +22,7 @@
 	},
 	"autoload" : {
 		"psr-4" : {
-			"File\\" : "src"
+			"SlicesCake\\File\\" : "src"
 		}
 	},
 	"minimum-stability" : "dev"
