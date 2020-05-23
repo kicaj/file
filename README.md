@@ -33,7 +33,7 @@ Note: If you want use multiple file input (from HTML5), just replace name of inp
 Next, load behavior in your table on `initialize` method, like below:
 
 ```
-$this->addBehavior('File.File', [
+$this->addBehavior('SlicesCake/File.File', [
     'logo',
 ]);
 ```
