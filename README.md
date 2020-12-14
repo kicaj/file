@@ -1,5 +1,10 @@
 # CakePHP plugin for upload files
 
+[![Build Status](https://scrutinizer-ci.com/g/slicesofcake/file/badges/build.png?b=master)](https://scrutinizer-ci.com/g/slicesofcake/file/build-status/master)
+[![Scrutinizer Code Quality](https://scrutinizer-ci.com/g/slicesofcake/file/badges/quality-score.png?b=master)](https://scrutinizer-ci.com/g/slicesofcake/file/?branch=master)
+[![LICENSE](https://img.shields.io/github/license/slicesofcake/file.svg)](https://github.com/slicesofcake/file/blob/master/LICENSE)
+[![Releases](https://img.shields.io/github/release/slicesofcake/file.svg)](https://github.com/slicesofcake/file/releases)
+
 Upload files with processing images using GD or ImageMagick library.
 
 ## Requirements
