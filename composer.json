@@ -24,6 +24,5 @@
 		"psr-4" : {
 			"SlicesCake\\File\\" : "src"
 		}
-	},
-	"minimum-stability" : "dev"
+	}
 }
